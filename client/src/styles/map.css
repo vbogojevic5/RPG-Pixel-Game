@@ -1,0 +1,327 @@
+/* ------------------------------------------------------------------ */
+/* Journey Map — fixed illustrated map with 5 stops on a winding path. */
+/* No keyboard, no walking. Click a node to fight its monster.         */
+/* ------------------------------------------------------------------ */
+
+.journey {
+  gap: 16px;
+  max-width: 1080px;
+}
+
+/* ---------- Top bar ---------- */
+.journey__topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.journey__hero-panel {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.journey__hero-portrait {
+  width: 48px;
+  height: 48px;
+  padding: 2px;
+  background: var(--bg-deep);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 8px var(--accent-glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.journey__hero-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.journey__hero-name {
+  font-family: var(--font-display);
+  color: var(--text);
+  font-size: 1.05rem;
+  line-height: 1.1;
+}
+
+.journey__hero-level {
+  color: var(--accent);
+  font-size: 0.8rem;
+  margin-left: 6px;
+  letter-spacing: 0.04em;
+}
+
+.journey__hero-bars {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.journey__bar {
+  position: relative;
+  flex: 1 1 160px;
+  max-width: 220px;
+  height: 14px;
+  background: #15101c;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.journey__bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  transition: width 180ms ease;
+}
+
+.journey__bar-fill--hp { background: linear-gradient(180deg, #5fc28a 0%, #347a54 100%); }
+.journey__bar-fill--xp { background: linear-gradient(180deg, #c8a24a 0%, #7a5f2a 100%); }
+
+.journey__bar-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: #fff;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+
+.journey__actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ---------- Map stage ---------- */
+.journey__stage {
+  padding: 18px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.55);
+}
+
+.journey__map {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  /* Parchment-on-stone backdrop, with warm vignette & subtle grain */
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(200, 162, 74, 0.12), transparent 55%),
+    radial-gradient(ellipse at 80% 80%, rgba(141, 109, 223, 0.10), transparent 60%),
+    linear-gradient(180deg, #2a221a 0%, #1a140e 60%, #0f0a06 100%);
+  box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.8), 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+/* A faint "worn paper" texture on top using repeating gradients */
+.journey__map::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 215, 140, 0.02) 0 2px, transparent 2px 8px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.06) 0 2px, transparent 2px 10px);
+  pointer-events: none;
+}
+
+/* ---------- Path (SVG overlay) ---------- */
+.journey__path {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.journey__path-line {
+  fill: none;
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.journey__path-line--remaining {
+  stroke: rgba(255, 240, 200, 0.35);
+  stroke-width: 0.8;
+  stroke-dasharray: 1.4 1.6;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.6));
+}
+
+.journey__path-line--traveled {
+  stroke: var(--accent);
+  stroke-width: 1.4;
+  stroke-dasharray: 200% 200%;
+  transition: stroke-dashoffset 400ms ease;
+  filter: drop-shadow(0 0 4px var(--accent-glow));
+}
+
+/* ---------- Nodes ---------- */
+.journey__node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 8px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+.journey__node:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: var(--radius);
+}
+
+.journey__node-pin {
+  position: relative;
+  width: 74px;
+  height: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(26, 20, 14, 0.9) 0%, rgba(26, 20, 14, 0.3) 60%, transparent 75%);
+  border: 2px solid var(--border-strong);
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+  transition: border 140ms ease, box-shadow 140ms ease, transform 120ms ease;
+}
+
+.journey__node:hover:not(:disabled) .journey__node-pin {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 6px 14px var(--accent-glow);
+}
+
+.journey__node.is-next .journey__node-pin {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px var(--danger), 0 0 14px rgba(192, 56, 75, 0.55);
+  animation: node-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes node-pulse {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+.journey__node.is-locked { cursor: not-allowed; }
+
+.journey__node.is-locked .journey__node-pin {
+  filter: grayscale(1) brightness(0.6);
+  opacity: 0.55;
+}
+
+.journey__node.is-defeated .journey__node-pin {
+  filter: grayscale(1) brightness(0.7);
+  opacity: 0.75;
+  border-style: dashed;
+}
+
+.journey__node-skull {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  color: rgba(255, 235, 210, 0.85);
+  text-shadow: 0 0 4px #000;
+  pointer-events: none;
+}
+
+.journey__node-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  line-height: 1;
+  padding: 2px 5px;
+  background: var(--bg-deep);
+  color: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+}
+
+.journey__node.is-defeated .journey__node-badge {
+  color: var(--text-dim);
+  border-color: var(--border);
+}
+
+.journey__node-caption {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-align: center;
+  background: rgba(14, 11, 20, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 3px 8px;
+  min-width: 90px;
+  max-width: 140px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.journey__node-name {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.journey__node-place {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-style: italic;
+  letter-spacing: 0.03em;
+}
+
+/* ---------- Footer ---------- */
+.journey__footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 32px;
+}
+
+.journey__hint {
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  font-style: italic;
+  margin: 0;
+  text-align: center;
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 720px) {
+  .journey__topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .journey__hero-panel { flex-direction: row; }
+  .journey__actions { justify-content: flex-end; }
+  .journey__node-pin { width: 56px; height: 56px; }
+  .journey__node-caption { font-size: 0.75rem; min-width: 64px; }
+}

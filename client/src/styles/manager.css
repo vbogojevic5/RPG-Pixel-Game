@@ -1,0 +1,313 @@
+/* ------------------------------------------------------------------ */
+/* Manager + Victory + LevelUp badge + Post-battle Phase 2 additions. */
+/* ------------------------------------------------------------------ */
+
+/* ---------- Move Manager ---------- */
+.manager__header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.manager__header h2 {
+  color: var(--accent-soft);
+  text-shadow: 0 0 12px var(--accent-glow);
+}
+
+.manager__subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.manager__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.manager__card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: border 120ms ease, background 120ms ease, box-shadow 120ms ease,
+    transform 80ms ease;
+}
+
+.manager__card:hover:not(:disabled) {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 4px 12px var(--accent-glow);
+}
+.manager__card:active:not(:disabled) { transform: translateY(1px); }
+.manager__card:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.manager__card.is-equipped {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent), 0 4px 12px var(--accent-glow);
+  background: linear-gradient(180deg, #3a2a1a 0%, var(--bg-card) 100%);
+}
+
+.manager__card--physical { border-left: 4px solid var(--physical); }
+.manager__card--magic    { border-left: 4px solid var(--magic); }
+.manager__card--heal     { border-left: 4px solid var(--heal); }
+.manager__card--buff     { border-left: 4px solid var(--buff); }
+.manager__card--debuff   { border-left: 4px solid var(--debuff); }
+
+.manager__card-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.manager__card-name {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+
+.manager__card-type {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+
+.manager__card-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.manager__card-footer {
+  margin-top: auto;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+}
+
+.manager__card.is-equipped .manager__card-footer {
+  color: var(--accent-soft);
+}
+
+.manager__footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ---------- Victory Screen ---------- */
+.victory {
+  align-items: center;
+  justify-content: center;
+}
+
+.victory__card {
+  width: 100%;
+  max-width: 720px;
+  margin: auto;
+  padding: 36px 32px;
+  background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-surface) 100%);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 1px var(--accent), 0 20px 60px var(--accent-glow);
+  text-align: center;
+}
+
+.victory__banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.victory__title {
+  font-size: 2.4rem;
+  color: var(--accent-soft);
+  text-shadow: 0 0 16px var(--accent-glow);
+  margin: 0;
+}
+
+.victory__subtitle {
+  color: var(--text-muted);
+  margin-bottom: 28px;
+  font-style: italic;
+}
+
+.victory__summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.victory__stat {
+  padding: 14px 12px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.victory__stat-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.victory__stat-value {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  color: var(--accent-soft);
+}
+
+.victory__section {
+  text-align: left;
+  margin: 20px 0;
+}
+
+.victory__section h3 {
+  color: var(--text);
+  margin-bottom: 10px;
+  font-size: 1.05rem;
+}
+
+.victory__monsters {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.victory__monster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+
+.victory__moves {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.victory__move {
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.victory__move--physical { border-left: 3px solid var(--physical); }
+.victory__move--magic    { border-left: 3px solid var(--magic); }
+.victory__move--heal     { border-left: 3px solid var(--heal); }
+.victory__move--buff     { border-left: 3px solid var(--buff); }
+.victory__move--debuff   { border-left: 3px solid var(--debuff); }
+
+.victory__move-name { font-weight: 600; }
+
+.victory__move-type {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+
+/* ---------- LevelUp badge (inline in PostBattle) ---------- */
+.levelup {
+  margin: 12px auto 18px;
+  padding: 14px 18px;
+  max-width: 360px;
+  background: linear-gradient(180deg, #8a6a1e 0%, #5f4613 100%);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  color: #fff6d8;
+  box-shadow: 0 0 0 1px var(--accent), 0 4px 14px var(--accent-glow);
+  text-align: center;
+}
+
+.levelup__header {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.levelup__level {
+  font-size: 0.85rem;
+  color: #fffbe8;
+  margin-bottom: 8px;
+}
+
+.levelup__stats {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.levelup__stat {
+  display: flex;
+  gap: 4px;
+  align-items: baseline;
+  font-size: 0.85rem;
+  padding: 2px 8px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 3px;
+}
+
+.levelup__stat-label {
+  font-weight: 700;
+  color: #fffbe8;
+}
+
+.levelup__stat-value {
+  color: #fff6d8;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Post-battle Phase 2 extras ---------- */
+.post-battle__portrait {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.post-battle__xp {
+  display: inline-block;
+  margin-bottom: 12px;
+  padding: 6px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--accent-soft);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+}

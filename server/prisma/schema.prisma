@@ -1,0 +1,117 @@
+// -----------------------------------------------------------------------------
+// Prisma schema for the RPG game.
+//
+// Models the full domain:
+//   - Config    : HeroConfig, Monster, Move, MonsterMove (m:n), Constant
+//   - Identity  : Player (username + hashed password)
+//   - Gameplay  : GameSave (per-player run snapshots)
+//
+// Switch to SQLite for local dev by swapping `provider` to "sqlite" and
+// pointing DATABASE_URL at "file:./dev.db".
+// -----------------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// Identity
+// -----------------------------------------------------------------------------
+
+model Player {
+  id           String     @id @default(cuid())
+  username     String     @unique
+  passwordHash String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  saves        GameSave[]
+}
+
+// -----------------------------------------------------------------------------
+// Config — game data the Game Designer tweaks
+// -----------------------------------------------------------------------------
+
+/// A single row of per-run constants (XP thresholds, stat gains, etc.).
+/// Stored as key/value so adding a new constant needs no migration.
+model Constant {
+  key   String @id
+  value Json
+}
+
+/// Default hero blueprint. Effectively a singleton — we use a fixed id.
+model HeroConfig {
+  id            String @id @default("hero")
+  name          String
+  sprite        String?
+  baseStats     Json     // { health, attack, defense, magic }
+  defaultMoves  String[] // move ids
+}
+
+model Move {
+  id           String        @id
+  name         String
+  /// 'physical' | 'magic' | 'heal' | 'buff' | 'debuff'
+  type         String
+  baseValue    Int
+  description  String
+  /// Buff / debuff payload { target, stat, multiplier, turns, selfDamage?, lifesteal? }
+  effect       Json?
+  /// Status effect payload { kind: 'bleed'|'poison'|'burn', chance, damage, turns, scalesWith? }
+  statusEffect Json?
+
+  monsters     MonsterMove[]
+}
+
+model Monster {
+  id        String        @id
+  name      String
+  order     Int           @unique
+  stats     Json          // { health, attack, defense, magic }
+  xpReward  Int
+  sprite    String?
+
+  moves     MonsterMove[]
+}
+
+/// Explicit m:n join so moves can be attached to monsters in any order
+/// and a single move can be reused across monsters if we ever want to.
+model MonsterMove {
+  monsterId String
+  moveId    String
+  slot      Int      // display order in the monster's moveset
+
+  monster   Monster @relation(fields: [monsterId], references: [id], onDelete: Cascade)
+  move      Move    @relation(fields: [moveId],    references: [id], onDelete: Cascade)
+
+  @@id([monsterId, moveId])
+  @@index([monsterId, slot])
+}
+
+// -----------------------------------------------------------------------------
+// Gameplay — per-player save slots
+// -----------------------------------------------------------------------------
+
+model GameSave {
+  id                 String   @id @default(cuid())
+  playerId           String
+  name               String   // player-chosen save slot label
+  /// Full hero snapshot: { id, name, sprite, baseStats, stats, currentHealth, equippedMoves, knownMoves, xp, level }
+  heroState          Json
+  defeatedMonsterIds String[]
+  /// { battlesFought, battlesWon, battlesLost }
+  runStats           Json
+  /// If the save was mid-screen transition we could also remember screen name here.
+  lastScreen         String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  player             Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, updatedAt])
+}

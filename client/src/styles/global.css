@@ -1,0 +1,84 @@
+/* ------------------------------------------------------------------ */
+/* Dark-fantasy theme — CSS variables + reset + root layout           */
+/* ------------------------------------------------------------------ */
+
+:root {
+  --bg-deep: #0e0b14;
+  --bg-surface: #1a1624;
+  --bg-surface-alt: #221c30;
+  --bg-card: #2b2338;
+  --border: #3a2f4f;
+  --border-strong: #5a4a7d;
+
+  --text: #e9e2f5;
+  --text-muted: #a192b8;
+  --text-dim: #6d5e86;
+
+  --accent: #c8a24a;
+  --accent-glow: rgba(200, 162, 74, 0.35);
+  --accent-soft: #f2cf72;
+
+  --danger: #c0384b;
+  --danger-soft: #e85a6d;
+  --success: #4fae7a;
+  --magic: #8d6ddf;
+  --physical: #d67a3c;
+  --heal: #4fae7a;
+  --buff: #e0b44a;
+  --debuff: #a24a6b;
+
+  --radius: 8px;
+  --radius-sm: 4px;
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 3px 10px rgba(0, 0, 0, 0.4);
+
+  --font-display: 'Cinzel', 'Cormorant Garamond', 'Georgia', serif;
+  --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--text);
+  background:
+    radial-gradient(ellipse at top, rgba(90, 74, 125, 0.25), transparent 60%),
+    radial-gradient(ellipse at bottom, rgba(200, 162, 74, 0.08), transparent 60%),
+    var(--bg-deep);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.45;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+  margin: 0 0 0.4em 0;
+  color: var(--text);
+}
+
+h1 { font-size: 2.4rem; }
+h2 { font-size: 1.8rem; }
+h3 { font-size: 1.25rem; }
+
+p { margin: 0 0 0.8em 0; color: var(--text-muted); }
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.screen {
+  width: 100%;
+  max-width: 960px;
+  padding: 32px 28px 48px;
+  display: flex;
+  flex-direction: column;
+}
