@@ -32,3 +32,10 @@ export const JOURNEY_PATH_D =
   'C 36 22, 40 58, 48 70 ' +
   'C 56 82, 63 40, 70 28 ' +
   'C 78 18, 84 50, 91 62';
+
+export const JOURNEY_PATH_SEGMENTS = [
+  { from: 'goblin_warrior', to: 'giant_spider', d: 'M 9 78 C 16 60, 20 44, 27 32' },
+  { from: 'giant_spider', to: 'goblin_mage', d: 'M 27 32 C 36 22, 40 58, 48 70' },
+  { from: 'goblin_mage', to: 'witch', d: 'M 48 70 C 56 82, 63 40, 70 28' },
+  { from: 'witch', to: 'dragon', d: 'M 70 28 C 78 18, 84 50, 91 62' },
+];

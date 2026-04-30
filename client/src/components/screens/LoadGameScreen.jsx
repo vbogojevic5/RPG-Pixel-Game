@@ -68,6 +68,7 @@ export default function LoadGameScreen({
                     className="btn btn--primary"
                     onClick={() => onLoad(save)}
                     disabled={busy}
+                    data-sfx="loadConfirm"
                   >
                     Continue
                   </button>

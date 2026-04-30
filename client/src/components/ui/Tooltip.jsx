@@ -1,3 +1,5 @@
+import { formatMoveStat, moveIcon, statLabel } from '../../constants/movePresentation.js';
+
 /**
  * Tooltip — generic hover card wrapper.
  *
@@ -29,10 +31,22 @@ export function MoveTooltipCard({ move }) {
     <>
       <div className="tooltip__name">{move.name}</div>
       <div className="tooltip__row">
-        <span>{move.type}</span>
-        {move.baseValue > 0 && <span>base {move.baseValue}</span>}
+        <span>{moveIcon(move)} {move.type}</span>
+        <span>{formatMoveStat(move)}</span>
       </div>
       <div className="tooltip__desc">{move.description}</div>
+      {(move.cost?.mana || move.cost?.health) && (
+        <div className="tooltip__status tooltip__status--mana">
+          Cost:
+          {move.cost?.mana ? ` ${move.cost.mana} MP` : ''}
+          {move.cost?.health ? ` ${move.cost.health} HP` : ''}
+        </div>
+      )}
+      {move.effect?.stat && (
+        <div className="tooltip__status">
+          {statLabel(move.effect.stat)} x{move.effect.multiplier} for {move.effect.turns} turns
+        </div>
+      )}
       {se && (
         <div className={`tooltip__status tooltip__status--${se.kind}`}>
           {Math.round((se.chance ?? 1) * 100)}% chance to {se.kind} —

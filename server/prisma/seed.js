@@ -11,10 +11,15 @@
  */
 import 'dotenv/config';
 import { prisma } from '../db.js';
-import { hero, monsters, moves, constants } from '../config.js';
+import { dropTables, hero, heroClasses, items, monsters, moves, shopConfig, constants } from '../config.js';
 
 async function seedConstants() {
-  const entries = Object.entries(constants);
+  const entries = Object.entries({
+    ...constants,
+    ITEM_DEFINITIONS: items,
+    DROP_TABLES: dropTables,
+    SHOP_CONFIG: shopConfig,
+  });
   for (const [key, value] of entries) {
     await prisma.constant.upsert({
       where: { key },
@@ -36,6 +41,7 @@ async function seedMoves() {
         type: move.type,
         baseValue: move.baseValue,
         description: move.description,
+        cost: move.cost ?? null,
         effect: move.effect ?? null,
         statusEffect: move.statusEffect ?? null,
       },
@@ -44,6 +50,7 @@ async function seedMoves() {
         type: move.type,
         baseValue: move.baseValue,
         description: move.description,
+        cost: move.cost ?? null,
         effect: move.effect ?? null,
         statusEffect: move.statusEffect ?? null,
       },
@@ -90,22 +97,28 @@ async function seedMonsters() {
 }
 
 async function seedHero() {
-  await prisma.heroConfig.upsert({
-    where: { id: hero.id },
-    create: {
-      id: hero.id,
-      name: hero.name,
-      sprite: hero.sprite ?? null,
-      baseStats: hero.baseStats,
-      defaultMoves: hero.defaultMoves,
-    },
-    update: {
-      name: hero.name,
-      sprite: hero.sprite ?? null,
-      baseStats: hero.baseStats,
-      defaultMoves: hero.defaultMoves,
-    },
-  });
+  const entries = Object.values(heroClasses ?? { [hero.id]: hero });
+  for (const classConfig of entries) {
+    await prisma.heroConfig.upsert({
+      where: { id: classConfig.id },
+      create: {
+        id: classConfig.id,
+        name: classConfig.name,
+        sprite: classConfig.sprite ?? null,
+        baseStats: classConfig.baseStats,
+        defaultMoves: classConfig.defaultMoves,
+        levelUpGrowth: classConfig.levelUpGrowth ?? null,
+      },
+      update: {
+        name: classConfig.name,
+        sprite: classConfig.sprite ?? null,
+        baseStats: classConfig.baseStats,
+        defaultMoves: classConfig.defaultMoves,
+        levelUpGrowth: classConfig.levelUpGrowth ?? null,
+      },
+    });
+  }
+  return entries.length;
 }
 
 async function main() {
@@ -116,8 +129,8 @@ async function main() {
   console.log(`[seed] moves:     ${m}`);
   const mo = await seedMonsters();
   console.log(`[seed] monsters:  ${mo}`);
-  await seedHero();
-  console.log('[seed] hero:      1');
+  const h = await seedHero();
+  console.log(`[seed] heroes:    ${h}`);
   console.log('[seed] done.');
 }
 

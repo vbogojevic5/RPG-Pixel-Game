@@ -10,7 +10,7 @@ export default function LevelUpModal({ newLevel, statGains }) {
 
   const items = [
     { label: 'HP', value: statGains.health },
-    { label: 'ATK', value: statGains.attack },
+    { label: 'DMG', value: statGains.attack },
     { label: 'DEF', value: statGains.defense },
     { label: 'MAG', value: statGains.magic },
   ].filter((s) => s.value > 0);

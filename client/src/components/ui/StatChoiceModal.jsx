@@ -11,14 +11,16 @@ import { useMemo } from 'react';
 
 const ARCHETYPE_POOL = [
   { id: 'stout_heart',    name: 'Stout Heart',    desc: 'Hardy constitution.',      gains: { health: 16 } },
+  { id: 'deep_well',      name: 'Deep Well',       desc: 'A larger mana reserve.',   gains: { mana: 10 } },
   { id: 'warriors_vigor', name: "Warrior's Vigor", desc: 'Lean, mean, tougher.',    gains: { health: 10, attack: 2 } },
   { id: 'iron_fist',      name: 'Iron Fist',      desc: 'Sharper, heavier blows.',  gains: { attack: 4 } },
   { id: 'bulwark',        name: 'Bulwark',        desc: 'Shields and plate.',       gains: { defense: 4 } },
   { id: 'arcane_spark',   name: 'Arcane Spark',   desc: 'Magic flows freely.',      gains: { magic: 4 } },
+  { id: 'mystic_vigor',   name: 'Mystic Vigor',   desc: 'More power for spells.',   gains: { mana: 6, magic: 2 } },
   { id: 'battle_scholar', name: 'Battle Scholar', desc: 'Hybrid study.',            gains: { attack: 2, magic: 2 } },
   { id: 'sturdy_mage',    name: 'Sturdy Mage',    desc: 'Scholar of wards.',        gains: { defense: 2, magic: 2 } },
   { id: 'guardian',       name: 'Guardian',       desc: 'Resolute protector.',      gains: { health: 8, defense: 3 } },
-  { id: 'balanced',       name: 'Balanced Growth', desc: 'A little of everything.', gains: { health: 6, attack: 1, defense: 1, magic: 1 } },
+  { id: 'balanced',       name: 'Balanced Growth', desc: 'A little of everything.', gains: { health: 6, mana: 4, attack: 1, defense: 1, magic: 1 } },
   { id: 'tempered_steel', name: 'Tempered Steel', desc: 'Offense meets defense.',   gains: { attack: 2, defense: 2 } },
 ];
 
@@ -38,10 +40,15 @@ function pickThree(rngSeed) {
 function formatGains(g) {
   const parts = [];
   if (g.health)  parts.push(`+${g.health} HP`);
-  if (g.attack)  parts.push(`+${g.attack} ATK`);
+  if (g.mana)    parts.push(`+${g.mana} MP`);
+  if (g.attack)  parts.push(`+${g.attack} DMG`);
   if (g.defense) parts.push(`+${g.defense} DEF`);
   if (g.magic)   parts.push(`+${g.magic} MAG`);
   return parts.join(' · ');
+}
+
+function hasGains(g) {
+  return ['health', 'mana', 'attack', 'defense', 'magic'].some((key) => g?.[key]);
 }
 
 export default function StatChoiceModal({
@@ -49,6 +56,7 @@ export default function StatChoiceModal({
   queueRemaining,
   onChoose,
   rngSeed,
+  classGrowth,
   busy,
 }) {
   const options = useMemo(() => pickThree(rngSeed), [rngSeed]);
@@ -64,7 +72,10 @@ export default function StatChoiceModal({
             </span>
           )}
         </div>
-        <p className="statchoice__subtitle">Pick a path of growth.</p>
+        <p className="statchoice__subtitle">
+          Pick a path of growth.
+          {hasGains(classGrowth) ? ` Class growth also adds ${formatGains(classGrowth)}.` : ''}
+        </p>
         <div className="statchoice__options">
           {options.map((opt) => (
             <button

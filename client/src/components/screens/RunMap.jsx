@@ -2,9 +2,10 @@ import { useMemo } from 'react';
 import Sprite from '../ui/Sprite.jsx';
 import {
   JOURNEY_NODES,
-  JOURNEY_PATH_D,
+  JOURNEY_PATH_SEGMENTS,
   MAP_SIZE,
 } from '../../constants/overworld.js';
+import { statLabel } from '../../constants/movePresentation.js';
 
 /**
  * RunMap — the journey map (Phase 2, revised).
@@ -25,6 +26,8 @@ export default function RunMap({
   xpThreshold,
   onSelectMonster,
   onOpenMoveManager,
+  onOpenInventory,
+  onOpenShop,
   onOpenSave,
   onBackToMenu,
 }) {
@@ -41,17 +44,14 @@ export default function RunMap({
 
   // Next-to-fight = first undefeated in order.
   const nextId = useMemo(() => {
+    const runNodeIds = new Set(JOURNEY_NODES.map((node) => node.id));
     const ordered = [...config.monsters].sort((a, b) => a.order - b.order);
-    return ordered.find((m) => !defeatedMonsterIds.includes(m.id))?.id ?? null;
+    return ordered.find((m) => runNodeIds.has(m.id) && !defeatedMonsterIds.includes(m.id))?.id ?? null;
   }, [config, defeatedMonsterIds]);
 
-  const hpPct = hero ? (hero.currentHealth / hero.stats.health) * 100 : 0;
   const xpPct = xpThreshold ? (hero.xp / xpThreshold) * 100 : 0;
-
-  // How much of the path is "traveled" — a ratio 0..1 based on
-  // defeated count. The path has 5 segments so each kill lights up
-  // 1/5 of it.
-  const progress = defeatedMonsterIds.length / monsters.length;
+  const unlockedMerchants = (config.shopConfig?.merchants ?? [])
+    .filter((merchant) => defeatedMonsterIds.length >= merchant.unlockAfterCompleted);
 
   return (
     <div className="screen journey">
@@ -65,15 +65,6 @@ export default function RunMap({
               {hero.name} <span className="journey__hero-level">Lv {hero.level}</span>
             </div>
             <div className="journey__hero-bars">
-              <div className="journey__bar" title={`HP ${hero.currentHealth}/${hero.stats.health}`}>
-                <div
-                  className="journey__bar-fill journey__bar-fill--hp"
-                  style={{ width: `${Math.max(0, Math.min(100, hpPct))}%` }}
-                />
-                <span className="journey__bar-label">
-                  HP {hero.currentHealth}/{hero.stats.health}
-                </span>
-              </div>
               <div className="journey__bar" title={`XP ${hero.xp}/${xpThreshold ?? '?'}`}>
                 <div
                   className="journey__bar-fill journey__bar-fill--xp"
@@ -91,6 +82,16 @@ export default function RunMap({
           <button type="button" className="btn" onClick={onOpenMoveManager}>
             Moves ({hero.knownMoves.length})
           </button>
+          {onOpenInventory && (
+            <button type="button" className="btn" onClick={onOpenInventory}>
+              Items ({hero.inventory?.length ?? 0}) · {hero.coins ?? 0}
+            </button>
+          )}
+          {unlockedMerchants.map((merchant) => (
+            <button type="button" className="btn" key={merchant.id} onClick={() => onOpenShop?.(merchant.id)}>
+              {merchant.name}
+            </button>
+          ))}
           {onOpenSave && (
             <button type="button" className="btn" onClick={onOpenSave}>
               Save
@@ -107,22 +108,25 @@ export default function RunMap({
           className="journey__map"
           style={{ aspectRatio: `${MAP_SIZE.width} / ${MAP_SIZE.height}` }}
         >
-          {/* Path — two SVGs stacked so the traveled portion is coloured */}
+          {/* Path — individual footprint segments show locked / available / cleared state. */}
           <svg
             className="journey__path"
             viewBox="0 0 100 100"
             preserveAspectRatio="none"
             aria-hidden
           >
-            <path
-              d={JOURNEY_PATH_D}
-              className="journey__path-line journey__path-line--remaining"
-            />
-            <path
-              d={JOURNEY_PATH_D}
-              className="journey__path-line journey__path-line--traveled"
-              style={{ strokeDashoffset: `${(1 - progress) * 200}%` }}
-            />
+            {JOURNEY_PATH_SEGMENTS.map((segment) => {
+              const cleared = defeatedMonsterIds.includes(segment.to);
+              const available = !cleared && defeatedMonsterIds.includes(segment.from);
+              const state = cleared ? 'cleared' : available ? 'available' : 'locked';
+              return (
+                <path
+                  key={`${segment.from}-${segment.to}`}
+                  d={segment.d}
+                  className={`journey__path-line journey__path-line--${state}`}
+                />
+              );
+            })}
           </svg>
 
           {/* Nodes */}
@@ -132,6 +136,7 @@ export default function RunMap({
             const locked = !defeated && !isNext;
             const className = [
               'journey__node',
+              `journey__node--${n.id}`,
               defeated && 'is-defeated',
               isNext && 'is-next',
               locked && 'is-locked',
@@ -144,14 +149,16 @@ export default function RunMap({
                 type="button"
                 className={className}
                 style={{ left: `${n.x}%`, top: `${n.y}%` }}
-                disabled={locked}
-                onClick={() => onSelectMonster(n.id)}
+                aria-disabled={locked}
+                onClick={() => {
+                  if (!locked) onSelectMonster(n.id);
+                }}
                 title={`${n.monster.name} — ${n.label}${
                   defeated ? ' (defeated — fight again to farm XP)' : ''
                 }`}
               >
                 <span className="journey__node-pin">
-                  <Sprite kind="character" id={n.id} size={64} />
+                  <Sprite kind="character" id={n.id} size={72} />
                   {defeated && <span className="journey__node-skull">☠</span>}
                 </span>
                 <span className="journey__node-badge">#{n.order}</span>
@@ -159,24 +166,26 @@ export default function RunMap({
                   <span className="journey__node-name">{n.monster.name}</span>
                   <span className="journey__node-place">{n.label}</span>
                 </span>
+                <span className="journey__stat-cloud">
+                  <span className="journey__stat-cloud-title">{n.monster.name}</span>
+                  <span>HP {n.monster.stats.health}</span>
+                  <span>{statLabel('attack')} {n.monster.stats.attack}</span>
+                  <span>{statLabel('defense')} {n.monster.stats.defense}</span>
+                  <span>AP {n.monster.stats.magic}</span>
+                </span>
               </button>
             );
           })}
         </div>
       </div>
 
-      <footer className="journey__footer">
-        {nextId ? (
-          <p className="journey__hint">
-            Click the pulsing banner to challenge the next foe. Defeated monsters can be
-            re-fought to grind XP.
-          </p>
-        ) : (
+      {!nextId && (
+        <footer className="journey__footer">
           <p className="journey__hint">
             Every foe has fallen. The last defeat will seal your legend.
           </p>
-        )}
-      </footer>
+        </footer>
+      )}
     </div>
   );
 }

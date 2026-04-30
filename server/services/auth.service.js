@@ -22,7 +22,7 @@ function getJwtExpiresIn() {
 
 export function signToken(player) {
   return jwt.sign(
-    { sub: player.id, username: player.username },
+    { sub: player.id, username: player.username, role: player.role },
     getJwtSecret(),
     { expiresIn: getJwtExpiresIn() }
   );
@@ -85,6 +85,7 @@ export function toPublicPlayer(player) {
   return {
     id: player.id,
     username: player.username,
+    role: player.role,
     createdAt: player.createdAt,
   };
 }

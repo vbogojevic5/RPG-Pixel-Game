@@ -18,6 +18,7 @@ export default function SaveGameModal({
   const [mode, setMode] = useState('new');
   const [name, setName] = useState(suggestedName ?? '');
   const [localError, setLocalError] = useState(null);
+  const [pendingOverwrite, setPendingOverwrite] = useState(null);
 
   const ordered = useMemo(
     () =>
@@ -50,11 +51,17 @@ export default function SaveGameModal({
 
   const handleOverwrite = async (save) => {
     setLocalError(null);
-    if (!window.confirm(`Overwrite "${save.name}" with the current run?`)) return;
+    setPendingOverwrite(save);
+  };
+
+  const confirmOverwrite = async () => {
+    if (!pendingOverwrite) return;
     try {
-      await onOverwrite(save);
+      await onOverwrite(pendingOverwrite);
     } catch {
       // error surfaces via hook
+    } finally {
+      setPendingOverwrite(null);
     }
   };
 
@@ -63,7 +70,7 @@ export default function SaveGameModal({
       <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog">
         <div className="modal__header">
           <h3 className="modal__title">Save Run</h3>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
+          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy} data-sfx="modalClose">
             Close
           </button>
         </div>
@@ -73,6 +80,7 @@ export default function SaveGameModal({
             type="button"
             className={`modal__tab ${mode === 'new' ? 'is-active' : ''}`}
             onClick={() => setMode('new')}
+            data-sfx="modalOpen"
           >
             New slot
           </button>
@@ -81,6 +89,7 @@ export default function SaveGameModal({
             className={`modal__tab ${mode === 'overwrite' ? 'is-active' : ''}`}
             onClick={() => setMode('overwrite')}
             disabled={ordered.length === 0}
+            data-sfx="modalOpen"
           >
             Overwrite ({ordered.length})
           </button>
@@ -104,6 +113,7 @@ export default function SaveGameModal({
                 type="submit"
                 className="btn btn--primary"
                 disabled={busy}
+                data-sfx="saveConfirm"
               >
                 {busy ? 'Saving…' : 'Save'}
               </button>
@@ -132,6 +142,7 @@ export default function SaveGameModal({
                       className="btn"
                       onClick={() => handleOverwrite(save)}
                       disabled={busy}
+                      data-sfx="modalOpen"
                     >
                       Overwrite
                     </button>
@@ -140,6 +151,34 @@ export default function SaveGameModal({
               ))}
             </ul>
             {displayError && <p className="modal__error">{displayError}</p>}
+            {pendingOverwrite && (
+              <div className="save-confirm" role="alertdialog" aria-modal="false">
+                <div className="save-confirm__title">Overwrite save?</div>
+                <p className="save-confirm__text">
+                  Replace "{pendingOverwrite.name}" with the current run.
+                </p>
+                <div className="save-confirm__actions">
+                  <button
+                    type="button"
+                    className="btn btn--ghost"
+                    onClick={() => setPendingOverwrite(null)}
+                    disabled={busy}
+                    data-sfx="modalClose"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--primary"
+                    onClick={confirmOverwrite}
+                    disabled={busy}
+                    data-sfx="saveConfirm"
+                  >
+                    {busy ? 'Overwriting…' : 'Confirm Overwrite'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

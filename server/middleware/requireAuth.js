@@ -3,7 +3,7 @@ import { prisma } from '../db.js';
 
 /**
  * Authentication gate. Expects an `Authorization: Bearer <jwt>` header.
- * On success, attaches `req.player` ({ id, username }) for downstream
+ * On success, attaches `req.player` ({ id, username, role }) for downstream
  * handlers.
  */
 export async function requireAuth(req, res, next) {
@@ -23,7 +23,7 @@ export async function requireAuth(req, res, next) {
   try {
     const player = await prisma.player.findUnique({
       where: { id: payload.sub },
-      select: { id: true, username: true },
+      select: { id: true, username: true, role: true },
     });
     if (!player) {
       return res.status(401).json({ error: 'Account no longer exists.' });

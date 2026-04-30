@@ -8,11 +8,14 @@
 export const SCREENS = {
   AUTH: 'auth',
   MAIN_MENU: 'main_menu',
+  CLASS_SELECT: 'class_select',
   LOAD_GAME: 'load_game',
   RUN_MAP: 'run_map',
   BATTLE: 'battle',
   POST_BATTLE: 'post_battle',
   MOVE_MANAGER: 'move_manager',
+  INVENTORY: 'inventory',
+  SHOP: 'shop',
   VICTORY: 'victory',
 };
 

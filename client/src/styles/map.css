@@ -4,8 +4,10 @@
 /* ------------------------------------------------------------------ */
 
 .journey {
-  gap: 16px;
-  max-width: 1080px;
+  gap: 18px;
+  max-width: 1280px;
+  min-height: 100vh;
+  justify-content: center;
 }
 
 /* ---------- Top bar ---------- */
@@ -87,7 +89,6 @@
   transition: width 180ms ease;
 }
 
-.journey__bar-fill--hp { background: linear-gradient(180deg, #5fc28a 0%, #347a54 100%); }
 .journey__bar-fill--xp { background: linear-gradient(180deg, #c8a24a 0%, #7a5f2a 100%); }
 
 .journey__bar-label {
@@ -111,7 +112,7 @@
 
 /* ---------- Map stage ---------- */
 .journey__stage {
-  padding: 18px;
+  padding: 22px;
   background: var(--bg-deep);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -121,13 +122,17 @@
 .journey__map {
   position: relative;
   width: 100%;
+  min-height: 560px;
   border-radius: var(--radius-sm);
   overflow: hidden;
   /* Parchment-on-stone backdrop, with warm vignette & subtle grain */
   background:
-    radial-gradient(ellipse at 20% 20%, rgba(200, 162, 74, 0.12), transparent 55%),
-    radial-gradient(ellipse at 80% 80%, rgba(141, 109, 223, 0.10), transparent 60%),
-    linear-gradient(180deg, #2a221a 0%, #1a140e 60%, #0f0a06 100%);
+    radial-gradient(ellipse at 10% 80%, rgba(67, 119, 58, 0.34), transparent 26%),
+    radial-gradient(ellipse at 27% 32%, rgba(96, 86, 122, 0.28), transparent 24%),
+    radial-gradient(ellipse at 48% 70%, rgba(104, 83, 54, 0.38), transparent 24%),
+    radial-gradient(ellipse at 70% 28%, rgba(71, 111, 65, 0.28), transparent 24%),
+    radial-gradient(ellipse at 91% 62%, rgba(119, 62, 41, 0.34), transparent 25%),
+    linear-gradient(180deg, #132619 0%, #1d2c1b 42%, #12100a 100%);
   box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.8), 0 4px 20px rgba(0, 0, 0, 0.6);
 }
 
@@ -137,9 +142,26 @@
   position: absolute;
   inset: 0;
   background:
+    radial-gradient(ellipse at 9% 70%, rgba(55, 102, 41, 0.52) 0 10%, transparent 22%),
+    radial-gradient(ellipse at 27% 28%, rgba(45, 39, 60, 0.58) 0 12%, transparent 24%),
+    radial-gradient(ellipse at 49% 73%, rgba(79, 68, 48, 0.56) 0 12%, transparent 25%),
+    radial-gradient(ellipse at 70% 26%, rgba(44, 78, 39, 0.52) 0 12%, transparent 24%),
+    radial-gradient(ellipse at 91% 60%, rgba(105, 46, 34, 0.58) 0 12%, transparent 24%),
+    repeating-linear-gradient(105deg, rgba(12, 38, 20, 0.32) 0 12px, transparent 12px 30px),
     repeating-linear-gradient(45deg, rgba(255, 215, 140, 0.02) 0 2px, transparent 2px 8px),
     repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.06) 0 2px, transparent 2px 10px);
   pointer-events: none;
+}
+
+.journey__map::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(5, 16, 10, 0.78) 0%, transparent 18%),
+    radial-gradient(ellipse at 50% 105%, rgba(0, 0, 0, 0.52), transparent 44%);
+  mix-blend-mode: multiply;
 }
 
 /* ---------- Path (SVG overlay) ---------- */
@@ -149,28 +171,30 @@
   width: 100%;
   height: 100%;
   overflow: visible;
+  z-index: 1;
 }
 
 .journey__path-line {
   fill: none;
-  stroke-width: 1.1;
+  stroke-width: 2.2;
   stroke-linecap: round;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
+  stroke-dasharray: 0.01 5.2;
 }
 
-.journey__path-line--remaining {
-  stroke: rgba(255, 240, 200, 0.35);
-  stroke-width: 0.8;
-  stroke-dasharray: 1.4 1.6;
+.journey__path-line--locked {
+  stroke: rgba(190, 190, 190, 0.35);
   filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.6));
 }
 
-.journey__path-line--traveled {
-  stroke: var(--accent);
-  stroke-width: 1.4;
-  stroke-dasharray: 200% 200%;
-  transition: stroke-dashoffset 400ms ease;
+.journey__path-line--available {
+  stroke: var(--accent-soft);
+  filter: drop-shadow(0 0 5px var(--accent-glow));
+}
+
+.journey__path-line--cleared {
+  stroke: var(--success);
   filter: drop-shadow(0 0 4px var(--accent-glow));
 }
 
@@ -188,6 +212,7 @@
   color: var(--text);
   cursor: pointer;
   font-family: var(--font-body);
+  z-index: 3;
 }
 .journey__node:focus-visible {
   outline: 2px solid var(--accent);
@@ -197,8 +222,8 @@
 
 .journey__node-pin {
   position: relative;
-  width: 74px;
-  height: 74px;
+  width: 86px;
+  height: 86px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -209,7 +234,39 @@
   transition: border 140ms ease, box-shadow 140ms ease, transform 120ms ease;
 }
 
-.journey__node:hover:not(:disabled) .journey__node-pin {
+.journey__node-pin::before {
+  content: '';
+  position: absolute;
+  inset: -20px;
+  border-radius: 50%;
+  z-index: -1;
+  filter: blur(2px);
+  opacity: 0.7;
+}
+
+.journey__node--goblin_warrior .journey__node-pin::before {
+  background: radial-gradient(circle, rgba(69, 121, 55, 0.5), transparent 68%);
+}
+
+.journey__node--giant_spider .journey__node-pin::before {
+  background:
+    radial-gradient(circle, rgba(96, 86, 122, 0.55), transparent 66%),
+    repeating-linear-gradient(45deg, rgba(220, 220, 235, 0.16) 0 1px, transparent 1px 9px);
+}
+
+.journey__node--goblin_mage .journey__node-pin::before {
+  background: radial-gradient(circle, rgba(150, 105, 52, 0.5), transparent 68%);
+}
+
+.journey__node--witch .journey__node-pin::before {
+  background: radial-gradient(circle, rgba(55, 112, 68, 0.48), transparent 68%);
+}
+
+.journey__node--dragon .journey__node-pin::before {
+  background: radial-gradient(circle, rgba(174, 65, 42, 0.5), transparent 70%);
+}
+
+.journey__node:hover .journey__node-pin {
   transform: translateY(-2px);
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent), 0 6px 14px var(--accent-glow);
@@ -298,6 +355,59 @@
   letter-spacing: 0.03em;
 }
 
+.journey__stat-cloud {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%) translateY(8px);
+  min-width: 138px;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 10px;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.12), transparent 34%),
+    rgba(14, 11, 20, 0.95);
+  border: 1px solid var(--accent);
+  border-radius: 16px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.6), 0 0 14px var(--accent-glow);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease, transform 140ms ease;
+  z-index: 9;
+}
+
+.journey__stat-cloud::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  background: rgba(14, 11, 20, 0.95);
+  border-right: 1px solid var(--accent);
+  border-bottom: 1px solid var(--accent);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.journey__node:hover .journey__stat-cloud,
+.journey__node:focus-visible .journey__stat-cloud {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.journey__stat-cloud-title {
+  grid-column: 1 / -1;
+  font-family: var(--font-display);
+  color: var(--accent-soft);
+  font-size: 0.88rem;
+  margin-bottom: 2px;
+}
+
 /* ---------- Footer ---------- */
 .journey__footer {
   display: flex;
@@ -322,6 +432,7 @@
   }
   .journey__hero-panel { flex-direction: row; }
   .journey__actions { justify-content: flex-end; }
-  .journey__node-pin { width: 56px; height: 56px; }
+  .journey__map { min-height: 420px; }
+  .journey__node-pin { width: 62px; height: 62px; }
   .journey__node-caption { font-size: 0.75rem; min-width: 64px; }
 }

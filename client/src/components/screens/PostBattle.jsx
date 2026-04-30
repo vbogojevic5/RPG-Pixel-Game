@@ -1,4 +1,6 @@
 import Sprite from '../ui/Sprite.jsx';
+import BattleLog from '../ui/BattleLog.jsx';
+import { formatItemEffect, itemIcon, itemIconSrc } from '../../constants/itemPresentation.js';
 
 /**
  * PostBattle — shows the outcome of a fight and the rewards from it.
@@ -12,12 +14,15 @@ export default function PostBattle({
   outcome,
   monster,
   moves,
+  items,
   summary,
+  battleLog = [],
   pendingLevelUps = 0,
   onContinue,
 }) {
   const isWin = outcome === 'victory';
   const learnedMove = summary?.learnedMove ? moves[summary.learnedMove] : null;
+  const droppedItem = summary?.itemDrop ? items?.[summary.itemDrop] : null;
   const waitingOnLevelUp = pendingLevelUps > 0;
 
   return (
@@ -29,15 +34,33 @@ export default function PostBattle({
         <h2 className="post-battle__title">
           {isWin ? 'Victory!' : 'Defeat…'}
         </h2>
-        <p className="post-battle__subtitle">
-          {isWin
-            ? `You bested the ${monster?.name ?? 'monster'}.`
-            : `The ${monster?.name ?? 'monster'} overwhelmed you.`}
-        </p>
 
         {summary && summary.xpGained > 0 && (
           <div className="post-battle__xp">
             +{summary.xpGained} XP
+          </div>
+        )}
+
+        {isWin && summary?.coinsGained > 0 && (
+          <div className="post-battle__coins">
+            +{summary.coinsGained} Crowns
+          </div>
+        )}
+
+        {isWin && droppedItem && (
+          <div className="post-battle__item-drop">
+            <div className="post-battle__item-icon">
+              {itemIconSrc(droppedItem)
+                ? <img src={itemIconSrc(droppedItem)} alt="" draggable={false} />
+                : itemIcon(droppedItem)}
+            </div>
+            <div>
+              <div className="post-battle__learned-label">
+                {summary.itemDropAdded ? 'Item found!' : 'Item dropped, but inventory is full'}
+              </div>
+              <div className="post-battle__learned-name">{droppedItem.name}</div>
+              <div className="post-battle__learned-desc">{formatItemEffect(droppedItem)}</div>
+            </div>
           </div>
         )}
 
@@ -49,13 +72,16 @@ export default function PostBattle({
         )}
 
         {isWin && learnedMove && (
-          <div className="post-battle__learned">
+          <div>
             <div className="post-battle__learned-label">
               {summary?.alreadyKnown ? 'No new move learned' : 'You learned a move!'}
             </div>
+            <div className="post-battle__learned">
             <div className="post-battle__learned-move">
-              <div className="post-battle__learned-name">{learnedMove.name}</div>
-              <div className="post-battle__learned-type">{learnedMove.type}</div>
+              <div className="post-battle__learned-head">
+                <div className="post-battle__learned-name">{learnedMove.name}</div>
+                <div className="post-battle__learned-type">{learnedMove.type}</div>
+              </div>
               <div className="post-battle__learned-desc">
                 {learnedMove.description}
               </div>
@@ -66,12 +92,20 @@ export default function PostBattle({
               </p>
             )}
           </div>
+          </div>
         )}
 
         {!isWin && (
-          <p className="post-battle__note">
-            Your HP has been restored so you can try again.
-          </p>
+          <>
+            <p className="post-battle__note">
+              Your HP has been restored so you can try again.
+            </p>
+            {battleLog.length > 0 && (
+              <div className="post-battle__log-action">
+                <BattleLog entries={battleLog} />
+              </div>
+            )}
+          </>
         )}
 
         <button

@@ -477,6 +477,144 @@ Based on the Game Designer's bonus backlog:
 
 ---
 
+### Phase 4 — Game Feel, Audio & Final Polish
+
+This phase upgrades the feel of the existing game without changing the core loop:
+
+**Client:**
+- Forest-ruins arena polish, turn pacing, impact bursts, floating combat text
+- Battle log access from battle, defeat, and victory contexts
+- Journey map readability and monster stat previews
+- Move Arsenal usability improvements
+- Music and UI/battle SFX with mute and volume controls
+
+**Goal:** The current 5-monster gauntlet should feel complete, readable, and satisfying.
+
+---
+
+## Expansion Roadmap
+
+These phases extend the game beyond the original base gauntlet. They are intentionally
+medium-sized so each can be started in a fresh chat/tab and completed across a few prompts.
+
+### Phase 5 — Admin & Data Observability
+
+Build the foundation for Game Designer tuning and player/game inspection.
+
+**Architecture decision:**
+- The server remains responsible for run configuration and monster move decisions.
+- The client applies combat outcomes after receiving the monster move, matching the project brief:
+  `GET /run/config` and `GET /battle/monster-move`.
+- Do not move the full battle simulator server-side unless later requirements add leaderboards,
+  multiplayer, anti-cheat, or server-verified competitive results.
+
+**Server:**
+- Add admin roles/permissions to player accounts
+- Add admin-only endpoints for:
+  - users and basic player stats
+  - saves and run snapshots
+  - monsters, moves, hero config, constants
+  - battle result/log inspection
+- Persist battle result summaries and battle logs after fights
+- Add audit trail for admin changes to tunable game data
+
+**Admin app:**
+- Create `/admin` as a separate React app or admin frontend folder
+- Add login/session handling for admins
+- Add first dashboard pages:
+  - overview
+  - users
+  - saves
+  - battle logs
+  - monster/move tuning
+
+**Goal:** Admins can inspect players/runs and safely tune core battle data without a new client build.
+
+---
+
+### Phase 6 — Combat Resources, Statuses & Hero Classes
+
+Deepen combat decisions while preserving the current reward flow.
+
+**Server/config:**
+- Extend move config with optional HP and mana costs
+- Add mana-related constants: starting mana, max mana, regen per turn, and display labels
+- Normalize effect data for:
+  - bleed
+  - poison
+  - burn
+  - damage increase
+  - damage reduction
+  - stat buffs/debuffs
+- Add hero class configs:
+  - Knight
+  - Rogue
+  - Mage
+  - Ranger
+
+**Client:**
+- Add character selection before a new run
+- Track hero class, mana, mana regen, and class-specific level-up growth
+- Update move buttons/tooltips to show HP/mana costs
+- Disable or warn on moves the hero cannot afford
+- Decide whether monsters use mana; default recommendation is no, unless a monster archetype needs it
+
+**Goal:** Players choose a class and manage resources during battles, while designers can tune it from config/admin.
+
+---
+
+### Phase 7 — Items, Currency, Shop & Content Expansion
+
+Add a second progression layer alongside learned moves.
+
+**Server/config:**
+- Add item definitions:
+  - consumables
+  - equipment
+  - passive modifiers
+- Add monster drop tables for currency and items
+- Add shop inventory/pricing config
+- Add more enemies and moves beyond the original 5-monster set
+
+**Client:**
+- Track inventory, equipped items, and in-run currency
+- Add item/equipment management screen
+- Add shop screen where players spend currency on direct upgrades, items, or recovery
+- Keep current post-battle move learning intact; items/currency are additional rewards
+
+**Goal:** Runs gain long-term build choices through items, equipment, currency, and a larger content pool.
+
+---
+
+### Phase 8 — Non-Linear Map, Environments & Endless Mode
+
+Turn the fixed gauntlet into a replayable run structure.
+
+**Server/config:**
+- Add encounter pools by biome/difficulty
+- Add environment modifiers:
+  - poison swamp
+  - burning ruins
+  - arcane forest
+  - fortified camp
+- Add scaling rules for later encounters and endless mode
+
+**Client:**
+- Replace the fixed 5-node path with a branching generated map
+- Add node types:
+  - battle
+  - elite battle
+  - shop
+  - rest/recovery
+  - event
+  - boss
+- Apply environment effects in battle
+- Add endless mode after the normal run loop is stable
+
+**Goal:** The game becomes replayable through route choices, biome effects, scaling enemies, and endless progression.
+
+---
+
 ## Step-by-Step Build Order
 
 ### Step 1 — Project Setup & Full File Scaffold

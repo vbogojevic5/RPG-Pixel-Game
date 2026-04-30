@@ -1,4 +1,5 @@
 import Sprite from '../ui/Sprite.jsx';
+import BattleLog from '../ui/BattleLog.jsx';
 
 /**
  * VictoryScreen — shown after the hero defeats all 5 monsters in the run.
@@ -11,7 +12,14 @@ import Sprite from '../ui/Sprite.jsx';
  * Phase 2 ends here with a "Back to Menu" button. Future phases could
  * add a leaderboard, NG+, or localStorage-save of the run history.
  */
-export default function VictoryScreen({ hero, moves, runStats, defeatedMonsters, onBackToMenu }) {
+export default function VictoryScreen({
+  hero,
+  moves,
+  runStats,
+  battleLog = [],
+  defeatedMonsters,
+  onBackToMenu,
+}) {
   const learned = hero.knownMoves.map((id) => moves[id]).filter(Boolean);
 
   return (
@@ -68,9 +76,12 @@ export default function VictoryScreen({ hero, moves, runStats, defeatedMonsters,
           </ul>
         </section>
 
-        <button type="button" className="btn btn--primary" onClick={onBackToMenu}>
-          Back to Menu
-        </button>
+        <div className="victory__actions">
+          {battleLog.length > 0 && <BattleLog entries={battleLog} />}
+          <button type="button" className="btn btn--primary" onClick={onBackToMenu}>
+            Back to Menu
+          </button>
+        </div>
       </div>
     </div>
   );

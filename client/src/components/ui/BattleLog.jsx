@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * BattleLog — scrollable log panel pinned to the bottom-right of the
@@ -8,15 +9,15 @@ import { useEffect, useRef, useState } from 'react';
  * to a minimal pill so the log can be hidden when the player wants to
  * focus on the fight.
  */
-export default function BattleLog({ entries }) {
-  const [collapsed, setCollapsed] = useState(false);
+export default function BattleLog({ entries, contained = false }) {
+  const [open, setOpen] = useState(false);
   const listRef = useRef(null);
 
   useEffect(() => {
-    if (collapsed) return;
+    if (!open) return;
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [entries, collapsed]);
+  }, [entries, open]);
 
   const classify = (line) => {
     const lower = line.toLowerCase();
@@ -31,31 +32,14 @@ export default function BattleLog({ entries }) {
     return 'hero';
   };
 
-  if (collapsed) {
-    return (
-      <div className="battle-log battle-log--collapsed">
-        <div className="battle-log__header">
-          <h4 className="battle-log__title">Log</h4>
-          <button
-            type="button"
-            className="battle-log__toggle"
-            onClick={() => setCollapsed(false)}
-          >
-            show
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="battle-log">
+  const panel = open ? (
+    <div className={`battle-log__panel ${contained ? 'battle-log__panel--contained' : ''}`}>
       <div className="battle-log__header">
         <h4 className="battle-log__title">Battle Log</h4>
         <button
           type="button"
           className="battle-log__toggle"
-          onClick={() => setCollapsed(true)}
+          onClick={() => setOpen(false)}
         >
           hide
         </button>
@@ -64,12 +48,30 @@ export default function BattleLog({ entries }) {
         {entries.map((line, i) => (
           <li
             key={i}
-            className={`battle-log__entry battle-log__entry--${classify(line)}`}
+            className={`battle-log__entry battle-log__entry--${classify(line)} ${
+              i === entries.length - 1 ? 'is-latest' : ''
+            }`}
           >
-            {line}
+            <span className="battle-log__entry-index">{String(i + 1).padStart(2, '0')}</span>
+            <span className="battle-log__entry-text">{line}</span>
           </li>
         ))}
       </ul>
     </div>
+  ) : null;
+
+  return (
+    <>
+      <div className={`battle-log ${open ? 'is-open' : ''}`}>
+      <button
+        type="button"
+        className="arena__control-btn battle-log__button"
+        onClick={() => setOpen((value) => !value)}
+      >
+        Battle Log
+      </button>
+      </div>
+      {panel ? (contained ? panel : createPortal(panel, document.body)) : null}
+    </>
   );
 }

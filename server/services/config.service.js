@@ -9,10 +9,67 @@
  */
 import { prisma } from '../db.js';
 
+function normalizeMoveEffects(move) {
+  const effects = [];
+
+  if (move.statusEffect?.kind) {
+    effects.push({
+      kind: 'status',
+      target: 'enemy',
+      timing: 'onHit',
+      status: move.statusEffect.kind,
+      chance: move.statusEffect.chance ?? 1,
+      damage: move.statusEffect.damage ?? 3,
+      turns: move.statusEffect.turns ?? 2,
+      scalesWith: move.statusEffect.scalesWith ?? null,
+    });
+  }
+
+  if (move.effect?.stat) {
+    const multiplier = move.effect.multiplier ?? 1;
+    effects.push({
+      kind: 'statModifier',
+      mode: multiplier >= 1 ? 'buff' : 'debuff',
+      target: move.effect.target ?? (multiplier >= 1 ? 'self' : 'enemy'),
+      stat: move.effect.stat,
+      multiplier,
+      turns: move.effect.turns ?? 2,
+    });
+  }
+
+  if (move.effect?.damageIncrease) {
+    effects.push({
+      kind: 'damageIncrease',
+      target: move.effect.target ?? 'self',
+      multiplier: move.effect.damageIncrease,
+      turns: move.effect.turns ?? 2,
+    });
+  }
+
+  if (move.effect?.damageReduction) {
+    effects.push({
+      kind: 'damageReduction',
+      target: move.effect.target ?? 'self',
+      multiplier: move.effect.damageReduction,
+      turns: move.effect.turns ?? 2,
+    });
+  }
+
+  if (move.effect?.lifesteal) {
+    effects.push({
+      kind: 'lifesteal',
+      target: 'self',
+      ratio: move.effect.lifesteal,
+    });
+  }
+
+  return effects;
+}
+
 /** Load the full config once. Cheap — ~30 rows total. */
 export async function loadConfig() {
-  const [heroRow, monsterRows, moveRows, constantRows] = await Promise.all([
-    prisma.heroConfig.findFirst(),
+  const [heroRows, monsterRows, moveRows, constantRows] = await Promise.all([
+    prisma.heroConfig.findMany({ orderBy: { name: 'asc' } }),
     prisma.monster.findMany({
       orderBy: { order: 'asc' },
       include: {
@@ -26,7 +83,7 @@ export async function loadConfig() {
     prisma.constant.findMany(),
   ]);
 
-  if (!heroRow) {
+  if (heroRows.length === 0) {
     throw new Error('HeroConfig is empty. Run `npm run db:seed`.');
   }
 
@@ -38,8 +95,10 @@ export async function loadConfig() {
       type: m.type,
       baseValue: m.baseValue,
       description: m.description,
+      ...(m.cost ? { cost: m.cost } : {}),
       ...(m.effect ? { effect: m.effect } : {}),
       ...(m.statusEffect ? { statusEffect: m.statusEffect } : {}),
+      effects: normalizeMoveEffects(m),
     };
   }
 
@@ -55,16 +114,25 @@ export async function loadConfig() {
 
   const constants = {};
   for (const c of constantRows) constants[c.key] = c.value;
+  const items = constants.ITEM_DEFINITIONS ?? {};
+  const dropTables = constants.DROP_TABLES ?? {};
+  const shopConfig = constants.SHOP_CONFIG ?? { merchants: [] };
 
-  const hero = {
-    id: heroRow.id,
-    name: heroRow.name,
-    sprite: heroRow.sprite,
-    baseStats: heroRow.baseStats,
-    defaultMoves: heroRow.defaultMoves,
-  };
+  const heroClasses = {};
+  for (const row of heroRows) {
+    heroClasses[row.id] = {
+      id: row.id,
+      name: row.name,
+      sprite: row.sprite,
+      baseStats: row.baseStats,
+      defaultMoves: row.defaultMoves,
+      levelUpGrowth: row.levelUpGrowth ?? null,
+    };
+  }
 
-  return { hero, monsters, moves, constants };
+  const hero = heroClasses.knight ?? heroClasses[heroRows[0].id];
+
+  return { hero, heroClasses, monsters, moves, items, dropTables, shopConfig, constants };
 }
 
 /** Just the moves dictionary (used by validateBattleState). */

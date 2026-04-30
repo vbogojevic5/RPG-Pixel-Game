@@ -50,6 +50,21 @@ export const CHARACTER_SPRITES = {
     emoji: '🛡️',
     tint: '#c8a24a',
   },
+  rogue: {
+    ...sheetCell(ROGUES_SHEET, 5, 1),
+    emoji: '🗡️',
+    tint: '#7aa64a',
+  },
+  mage: {
+    ...sheetCell(ROGUES_SHEET, 3, 2),
+    emoji: '🔮',
+    tint: '#8d6ddf',
+  },
+  ranger: {
+    ...sheetCell(ROGUES_SHEET, 2, 1),
+    emoji: '🏹',
+    tint: '#4fae7a',
+  },
 
   // ---- Monsters (monsters.png) ----
   // Goblin Warrior — "goblin brute" (row 1, col h)
@@ -81,6 +96,16 @@ export const CHARACTER_SPRITES = {
     ...sheetCell(MONSTERS_SHEET, 2, 8),
     emoji: '🐉',
     tint: '#c03848',
+  },
+  bandit_archer: {
+    ...sheetCell(ROGUES_SHEET, 2, 1),
+    emoji: '🏹',
+    tint: '#7a5f2a',
+  },
+  stone_golem: {
+    ...sheetCell(MONSTERS_SHEET, 0, 7),
+    emoji: '🗿',
+    tint: '#8f8a7a',
   },
 };
 

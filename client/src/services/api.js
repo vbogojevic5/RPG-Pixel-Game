@@ -63,6 +63,10 @@ export function getMonsterMove(battleState) {
   return request(`/battle/monster-move?state=${encodeURIComponent(b64)}`);
 }
 
+export function recordBattleResult(payload) {
+  return request('/battle/results', { method: 'POST', body: payload });
+}
+
 // --- Auth --------------------------------------------------------------------
 
 export function register(username, password) {

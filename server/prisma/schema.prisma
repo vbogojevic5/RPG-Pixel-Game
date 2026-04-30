@@ -27,10 +27,13 @@ model Player {
   id           String     @id @default(cuid())
   username     String     @unique
   passwordHash String
+  role         String     @default("player")
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
   saves        GameSave[]
+  battleRuns   BattleRun[]
+  auditLogs    AdminAuditLog[]
 }
 
 // -----------------------------------------------------------------------------
@@ -49,8 +52,9 @@ model HeroConfig {
   id            String @id @default("hero")
   name          String
   sprite        String?
-  baseStats     Json     // { health, attack, defense, magic }
+  baseStats     Json     // { health, mana, attack, defense, magic }
   defaultMoves  String[] // move ids
+  levelUpGrowth Json?    // class-specific gains applied on each level-up
 }
 
 model Move {
@@ -60,6 +64,8 @@ model Move {
   type         String
   baseValue    Int
   description  String
+  /// Optional resource cost payload { mana?, health? }
+  cost         Json?
   /// Buff / debuff payload { target, stat, multiplier, turns, selfDamage?, lifesteal? }
   effect       Json?
   /// Status effect payload { kind: 'bleed'|'poison'|'burn', chance, damage, turns, scalesWith? }
@@ -114,4 +120,39 @@ model GameSave {
   player             Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@index([playerId, updatedAt])
+}
+
+model BattleRun {
+  id          String   @id @default(cuid())
+  playerId    String
+  monsterId   String
+  monsterName String
+  outcome     String
+  xpGained    Int
+  turns       Int
+  battleLog   Json
+  startedAt   DateTime?
+  endedAt     DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  player      Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, endedAt])
+  @@index([monsterId, outcome])
+}
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  entityType String
+  entityId   String
+  action     String
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+
+  admin      Player   @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId, createdAt])
+  @@index([entityType, entityId])
 }

@@ -28,5 +28,5 @@ export async function login(req, res, next) {
 }
 
 export function me(req, res) {
-  res.json({ player: { id: req.player.id, username: req.player.username } });
+  res.json({ player: { id: req.player.id, username: req.player.username, role: req.player.role } });
 }

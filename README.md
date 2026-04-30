@@ -21,9 +21,15 @@ See [`instructions.md`](./instructions.md) for the full spec and
 - **Client**: React 19 + Vite 8 + plain CSS
 - **No database, no auth, no game engine.** Just two REST endpoints and a stateful React app.
 
+## Asset Credits
+
+- Ability icons are loaded from [Game-icons.net](https://game-icons.net/) under CC BY 3.0 / CC0 depending on the icon. Icons used here are by Lorc, Delapouite, and Zeromancer.
+- Music uses [Glizzy Elf Forest [RPG MUSIC PACK]](https://opengameart.org/content/glizzy-elf-forest-rpg-music-pack) by Zane Little Music, CC0.
+- UI and battle sound effects use [Kenney RPG Audio / 50 RPG sound effects](https://opengameart.org/content/50-rpg-sound-effects), CC0.
+
 ## Run it locally
 
-You'll need two terminals, one per process.
+You'll need one terminal per process.
 
 ### 1. Server (port 3001)
 
@@ -50,6 +56,24 @@ npm run dev
 Open `http://localhost:5173/` in a browser. The client talks to the server at
 `http://localhost:3001` by default — override via the `VITE_API_BASE_URL`
 environment variable if you host them elsewhere.
+
+### 3. Admin app (port 5174)
+
+```bash
+cd admin
+npm install
+npm run dev
+```
+
+Promote an existing player account before signing into the admin console:
+
+```bash
+cd server
+npm run admin:promote -- <username>
+```
+
+Open `http://localhost:5174/`. The admin app uses the same server API base URL
+override: `VITE_API_BASE_URL`.
 
 ## Project layout
 
