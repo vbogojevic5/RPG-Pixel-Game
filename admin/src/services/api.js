@@ -93,14 +93,26 @@ export function updateMonster(id, payload) {
   return request(`/admin/monsters/${id}`, { method: 'PUT', body: payload });
 }
 
+export function createMonster(payload) {
+  return request('/admin/monsters', { method: 'POST', body: payload });
+}
+
+export function createMove(payload) {
+  return request('/admin/moves', { method: 'POST', body: payload });
+}
+
 export function updateMove(id, payload) {
   return request(`/admin/moves/${id}`, { method: 'PUT', body: payload });
 }
 
-export function updateConstant(key, value) {
-  return request(`/admin/constants/${key}`, { method: 'PUT', body: { value } });
+export function createHero(payload) {
+  return request('/admin/heroes', { method: 'POST', body: payload });
 }
 
 export function updateHero(id, payload) {
   return request(`/admin/heroes/${id}`, { method: 'PUT', body: payload });
+}
+
+export function updateConstant(key, value) {
+  return request(`/admin/constants/${encodeURIComponent(key)}`, { method: 'PUT', body: { value } });
 }

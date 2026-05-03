@@ -6,7 +6,6 @@ import './styles/ui.css';
 import './styles/map.css';
 import './styles/battle.css';
 import './styles/manager.css';
-import './styles/phase3.css';
 
 const path = window.location.pathname;
 if (path.startsWith('/admin')) {

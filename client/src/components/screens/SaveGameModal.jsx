@@ -1,9 +1,18 @@
 import { useMemo, useState } from 'react';
 
+function formatDdMmYyyy(isoOrDate) {
+  const d = isoOrDate instanceof Date ? isoOrDate : new Date(isoOrDate);
+  if (Number.isNaN(d.getTime())) return '—';
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
 /**
  * SaveGameModal — popup shown from the journey map when the player
  * wants to save. Two tabs:
- *   - New slot  : picks a name, POSTs a new save
+ *   - New save : picks a name, POSTs a new save
  *   - Overwrite : lists existing saves, PUT updates the chosen one
  */
 export default function SaveGameModal({
@@ -35,7 +44,7 @@ export default function SaveGameModal({
     setLocalError(null);
     const trimmed = name.trim();
     if (trimmed.length === 0) {
-      setLocalError('Name the save slot.');
+      setLocalError('Enter a save name.');
       return;
     }
     if (trimmed.length > 40) {
@@ -67,12 +76,16 @@ export default function SaveGameModal({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog">
-        <div className="modal__header">
-          <h3 className="modal__title">Save Run</h3>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy} data-sfx="modalClose">
-            Close
-          </button>
+      <div
+        className="modal"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-labelledby="save-run-title"
+      >
+        <div className="modal__header modal__header--centered">
+          <h3 className="modal__title" id="save-run-title">
+            Save Run
+          </h3>
         </div>
 
         <div className="modal__tabs">
@@ -82,7 +95,7 @@ export default function SaveGameModal({
             onClick={() => setMode('new')}
             data-sfx="modalOpen"
           >
-            New slot
+            New save
           </button>
           <button
             type="button"
@@ -108,7 +121,16 @@ export default function SaveGameModal({
                 autoFocus
               />
             </label>
-            <div className="modal__actions">
+            <div className="modal__actions modal__actions--centered">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={onClose}
+                disabled={busy}
+                data-sfx="modalClose"
+              >
+                Cancel
+              </button>
               <button
                 type="submit"
                 className="btn btn--primary"
@@ -130,10 +152,7 @@ export default function SaveGameModal({
                   <div className="save-slot__main">
                     <div className="save-slot__name">{save.name}</div>
                     <div className="save-slot__meta">
-                      Lv {save.heroState?.level ?? 1} · {save.defeatedMonsterIds?.length ?? 0}/5 defeated
-                    </div>
-                    <div className="save-slot__stamp">
-                      {new Date(save.updatedAt).toLocaleString()}
+                      Level {save.heroState?.level ?? 1} - {formatDdMmYyyy(save.updatedAt)}
                     </div>
                   </div>
                   <div className="save-slot__actions">
@@ -157,7 +176,7 @@ export default function SaveGameModal({
                 <p className="save-confirm__text">
                   Replace "{pendingOverwrite.name}" with the current run.
                 </p>
-                <div className="save-confirm__actions">
+                <div className="save-confirm__actions save-confirm__actions--centered">
                   <button
                     type="button"
                     className="btn btn--ghost"

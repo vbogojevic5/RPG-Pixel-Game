@@ -50,18 +50,19 @@ export const CHARACTER_SPRITES = {
     emoji: '🛡️',
     tint: '#c8a24a',
   },
+  // Row/col match 32rogues legends: 1.c ranger, 1.d rogue, 5.a female wizard, 2.a knight
   rogue: {
-    ...sheetCell(ROGUES_SHEET, 5, 1),
+    ...sheetCell(ROGUES_SHEET, 3, 0),
     emoji: '🗡️',
     tint: '#7aa64a',
   },
   mage: {
-    ...sheetCell(ROGUES_SHEET, 3, 2),
+    ...sheetCell(ROGUES_SHEET, 0, 4),
     emoji: '🔮',
     tint: '#8d6ddf',
   },
   ranger: {
-    ...sheetCell(ROGUES_SHEET, 2, 1),
+    ...sheetCell(ROGUES_SHEET, 2, 0),
     emoji: '🏹',
     tint: '#4fae7a',
   },
@@ -97,15 +98,31 @@ export const CHARACTER_SPRITES = {
     emoji: '🐉',
     tint: '#c03848',
   },
+  // monsters.txt: 1.f goblin archer, 8.c rock golem, 5.a skeleton, 3.b big slime, 6.c wraith
   bandit_archer: {
-    ...sheetCell(ROGUES_SHEET, 2, 1),
+    ...sheetCell(MONSTERS_SHEET, 5, 0),
     emoji: '🏹',
     tint: '#7a5f2a',
   },
   stone_golem: {
-    ...sheetCell(MONSTERS_SHEET, 0, 7),
+    ...sheetCell(MONSTERS_SHEET, 2, 7),
     emoji: '🗿',
     tint: '#8f8a7a',
+  },
+  skeleton_guard: {
+    ...sheetCell(MONSTERS_SHEET, 0, 4),
+    emoji: '💀',
+    tint: '#c8c0a8',
+  },
+  mire_slime: {
+    ...sheetCell(MONSTERS_SHEET, 1, 2),
+    emoji: '🫧',
+    tint: '#4f7f72',
+  },
+  sea_wraith: {
+    ...sheetCell(MONSTERS_SHEET, 2, 5),
+    emoji: '🌊',
+    tint: '#5e8fb4',
   },
 };
 

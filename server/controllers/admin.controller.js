@@ -3,6 +3,7 @@ import { loadConfig } from '../services/config.service.js';
 
 const STAT_KEYS = ['health', 'mana', 'attack', 'defense', 'magic'];
 const MOVE_TYPES = ['physical', 'magic', 'heal', 'buff', 'debuff'];
+const WORLD_CONSTANT_KEYS = ['MAP_CONFIG', 'BIOME_CONFIG', 'ARENA_THEMES'];
 
 function badRequest(message) {
   const err = new Error(message);
@@ -27,6 +28,53 @@ function ensureStringArray(value, label) {
     throw badRequest(`${label} must be an array of ids.`);
   }
   return [...value];
+}
+
+function ensureId(value, label = 'id') {
+  if (typeof value !== 'string' || !/^[a-z][a-z0-9_]*$/.test(value)) {
+    throw badRequest(`${label} must use lowercase letters, numbers, and underscores, starting with a letter.`);
+  }
+  return value;
+}
+
+function ensureWorldConfig(key, value) {
+  if (!WORLD_CONSTANT_KEYS.includes(key)) return value;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw badRequest(`${key} must be an object.`);
+  }
+  if (key === 'MAP_CONFIG') {
+    if (!Array.isArray(value.nodes) || value.nodes.length === 0) {
+      throw badRequest('MAP_CONFIG.nodes must be a non-empty array.');
+    }
+    const ids = new Set();
+    for (const node of value.nodes) {
+      ensureId(node?.id, 'node.id');
+      if (ids.has(node.id)) throw badRequest(`Duplicate map node id: ${node.id}`);
+      ids.add(node.id);
+      if (!['battle', 'elite', 'shop', 'boss'].includes(node.type)) {
+        throw badRequest(`Map node ${node.id} has invalid type.`);
+      }
+      if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) {
+        throw badRequest(`Map node ${node.id} needs numeric x/y coordinates.`);
+      }
+      if (node.type === 'shop' && !node.merchantId) {
+        throw badRequest(`Shop node ${node.id} needs merchantId.`);
+      }
+      if (node.type !== 'shop' && !node.monsterId) {
+        throw badRequest(`Battle node ${node.id} needs monsterId.`);
+      }
+      if (!Array.isArray(node.children)) throw badRequest(`Map node ${node.id}.children must be an array.`);
+    }
+    const nodeIds = new Set(value.nodes.map((n) => n.id));
+    for (const node of value.nodes) {
+      for (const childId of node.children ?? []) {
+        if (!nodeIds.has(childId)) {
+          throw badRequest(`Map node ${node.id} references unknown child "${childId}".`);
+        }
+      }
+    }
+  }
+  return value;
 }
 
 function publicPlayer(player) {
@@ -57,12 +105,12 @@ export async function overview(_req, res, next) {
         prisma.monster.count(),
         prisma.move.count(),
         prisma.battleRun.findMany({
-          take: 5,
+          take: 3,
           orderBy: { endedAt: 'desc' },
           include: { player: { select: { username: true } } },
         }),
         prisma.adminAuditLog.findMany({
-          take: 5,
+          take: 3,
           orderBy: { createdAt: 'desc' },
           include: { admin: { select: { username: true } } },
         }),
@@ -234,6 +282,113 @@ export async function updateMonster(req, res, next) {
   }
 }
 
+export async function createMonster(req, res, next) {
+  try {
+    const id = ensureId(req.body?.id);
+    const existing = await prisma.monster.findUnique({ where: { id } });
+    if (existing) return res.status(409).json({ error: 'Monster id already exists.' });
+
+    if (typeof req.body.name !== 'string' || !req.body.name.trim()) throw badRequest('name is required.');
+    if (!Number.isInteger(req.body.order) || req.body.order < 1) throw badRequest('order must be a positive integer.');
+    if (!Number.isInteger(req.body.xpReward) || req.body.xpReward < 0) {
+      throw badRequest('xpReward must be a non-negative integer.');
+    }
+    const moves = ensureStringArray(req.body.moves, 'moves');
+    if (moves.length === 0) throw badRequest('moves must contain at least one move.');
+    const count = await prisma.move.count({ where: { id: { in: moves } } });
+    if (count !== new Set(moves).size) throw badRequest('moves contains an unknown move id.');
+
+    const after = await prisma.$transaction(async (tx) => {
+      const monster = await tx.monster.create({
+        data: {
+          id,
+          name: req.body.name.trim(),
+          order: req.body.order,
+          stats: ensureStats(req.body.stats),
+          xpReward: req.body.xpReward,
+          sprite: req.body.sprite || null,
+        },
+      });
+      for (let slot = 0; slot < moves.length; slot++) {
+        await tx.monsterMove.create({ data: { monsterId: id, moveId: moves[slot], slot } });
+      }
+      return { ...monster, moves };
+    });
+
+    await writeAudit(req.player.id, 'monster', id, 'create', null, after);
+    res.status(201).json({ monster: after });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function createMove(req, res, next) {
+  try {
+    const id = ensureId(req.body?.id);
+    const existing = await prisma.move.findUnique({ where: { id } });
+    if (existing) return res.status(409).json({ error: 'Move id already exists.' });
+
+    if (typeof req.body.name !== 'string' || !req.body.name.trim()) throw badRequest('name is required.');
+    if (!MOVE_TYPES.includes(req.body.type)) throw badRequest(`type must be one of: ${MOVE_TYPES.join(', ')}.`);
+    if (!Number.isInteger(req.body.baseValue) || req.body.baseValue < 0) {
+      throw badRequest('baseValue must be a non-negative integer.');
+    }
+    if (typeof req.body.description !== 'string') throw badRequest('description must be a string.');
+
+    const move = await prisma.move.create({
+      data: {
+        id,
+        name: req.body.name.trim(),
+        type: req.body.type,
+        baseValue: req.body.baseValue,
+        description: req.body.description.trim(),
+        cost: req.body.cost ?? null,
+        effect: req.body.effect ?? null,
+        statusEffect: req.body.statusEffect ?? null,
+      },
+    });
+    await writeAudit(req.player.id, 'move', id, 'create', null, move);
+    res.status(201).json({ move });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function createHero(req, res, next) {
+  try {
+    const id = ensureId(req.body?.id);
+    const existing = await prisma.heroConfig.findUnique({ where: { id } });
+    if (existing) return res.status(409).json({ error: 'Hero class id already exists.' });
+
+    if (typeof req.body.name !== 'string' || !req.body.name.trim()) throw badRequest('name is required.');
+    const baseStats = ensureStats(req.body.baseStats, 'baseStats');
+    const defaultMoves = ensureStringArray(req.body.defaultMoves, 'defaultMoves');
+    if (defaultMoves.length === 0) throw badRequest('defaultMoves must contain at least one move.');
+    const moveCount = await prisma.move.count({ where: { id: { in: defaultMoves } } });
+    if (moveCount !== new Set(defaultMoves).size) throw badRequest('defaultMoves contains an unknown move id.');
+
+    let levelUpGrowth = null;
+    if (req.body.levelUpGrowth != null && typeof req.body.levelUpGrowth === 'object') {
+      levelUpGrowth = ensureStats(req.body.levelUpGrowth, 'levelUpGrowth');
+    }
+
+    const hero = await prisma.heroConfig.create({
+      data: {
+        id,
+        name: req.body.name.trim(),
+        sprite: req.body.sprite || null,
+        baseStats,
+        defaultMoves,
+        levelUpGrowth,
+      },
+    });
+    await writeAudit(req.player.id, 'heroConfig', id, 'create', null, hero);
+    res.status(201).json({ hero });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function updateMove(req, res, next) {
   try {
     const existing = await prisma.move.findUnique({ where: { id: req.params.id } });
@@ -270,14 +425,18 @@ export async function updateMove(req, res, next) {
 
 export async function updateConstant(req, res, next) {
   try {
+    if (req.params.key === 'MAX_EQUIPPED_MOVES') {
+      throw badRequest('MAX_EQUIPPED_MOVES is fixed at 4 and cannot be changed.');
+    }
     if (!Object.prototype.hasOwnProperty.call(req.body ?? {}, 'value')) {
       throw badRequest('value is required.');
     }
     const existing = await prisma.constant.findUnique({ where: { key: req.params.key } });
     if (!existing) return res.status(404).json({ error: 'Constant not found.' });
+    const value = ensureWorldConfig(req.params.key, req.body.value);
     const constant = await prisma.constant.update({
       where: { key: req.params.key },
-      data: { value: req.body.value },
+      data: { value },
     });
     await writeAudit(req.player.id, 'constant', req.params.key, 'update', existing, constant);
     res.json({ constant });

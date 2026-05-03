@@ -134,6 +134,37 @@ strong {
   padding: 30px;
 }
 
+.login-card__actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+/* Match game client primary CTA (see client ui.css .btn--primary) */
+.login-card__submit {
+  min-width: 220px;
+  padding: 11px 28px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: linear-gradient(180deg, #8a6a1e 0%, #5f4613 100%);
+  color: #fff6d8;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  font-size: 0.95rem;
+  box-shadow: 0 0 0 1px var(--accent), 0 4px 14px rgba(215, 170, 76, 0.35);
+  cursor: pointer;
+}
+
+.login-card__submit:hover:not(:disabled) {
+  background: linear-gradient(180deg, #a88024 0%, #715319 100%);
+  color: #fff;
+}
+
+.login-card__submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .login-card label {
   display: grid;
   gap: 8px;
@@ -183,8 +214,12 @@ strong {
 }
 
 .sidebar nav button {
+  width: 100%;
   min-height: 46px;
-  text-align: left;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sidebar__footer {
@@ -235,6 +270,65 @@ strong {
   display: grid;
   grid-template-columns: minmax(320px, 0.9fr) minmax(320px, 1.1fr);
   gap: 18px;
+}
+
+.split--battles {
+  grid-template-columns: minmax(340px, 1.35fr) minmax(260px, 0.65fr);
+}
+
+.battles-filter {
+  margin-bottom: 14px;
+}
+
+.users-list__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.users-list__joined {
+  color: var(--muted);
+}
+
+.map-parent-picker {
+  padding: 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.map-parent-picker__hint {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.map-parent-picker__grid {
+  margin-top: 8px;
+}
+
+.map-parent-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.map-parent-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.map-parent-row__field {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.map-parent-add {
+  margin-top: 4px;
 }
 
 .card {
@@ -322,6 +416,62 @@ strong {
   gap: 18px;
 }
 
+.tuning-three {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.tuning-section {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+}
+
+.tuning-three__heading {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+  color: var(--accent-soft);
+}
+
+.tuning-three__toolbar {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.tuning-toolbar__create {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 44px;
+  padding: 11px 16px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tuning-toolbar__select {
+  flex: 1 1 220px;
+  min-width: min(100%, 200px);
+}
+
+.tuning-three__toolbar .compact-button.is-active {
+  border-color: var(--accent);
+  color: #1b1424;
+  background: var(--accent);
+}
+
+.tuning-section .tuning-card {
+  min-height: 0;
+}
+
 .tuning-selector-row,
 .tuning-grid {
   display: grid;
@@ -381,29 +531,6 @@ strong {
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
-.nested-config {
-  display: grid;
-  gap: 12px;
-}
-
-.nested-config__item {
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid rgba(90, 74, 125, 0.45);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.nested-config__label {
-  margin: 0;
-  color: var(--accent-soft);
-  font-size: 0.76rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
 .range-row {
   display: grid;
   grid-template-columns: 1fr 82px;
@@ -434,6 +561,20 @@ input[type="range"] {
 
 .check-card input {
   width: auto;
+}
+
+.tuning-grid--wide {
+  grid-template-columns: 1fr;
+}
+
+.tuning-card--wide {
+  grid-column: 1 / -1;
+}
+
+.node-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
 }
 
 .transcript {

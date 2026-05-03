@@ -38,13 +38,27 @@ export default function AuthScreen({
       setLocalError('Username must be at least 3 characters.');
       return;
     }
-    if (password.length < 6) {
-      setLocalError('Password must be at least 6 characters.');
+    if (!password) {
+      setLocalError('Enter your password.');
       return;
     }
-    if (isRegister && password !== confirm) {
-      setLocalError('Passwords do not match.');
-      return;
+    if (isRegister) {
+      if (password.length < 8) {
+        setLocalError('Password must be at least 8 characters.');
+        return;
+      }
+      if (!/[A-Z]/.test(password)) {
+        setLocalError('Password must include at least one capital letter.');
+        return;
+      }
+      if (!/\d/.test(password)) {
+        setLocalError('Password must include at least one number.');
+        return;
+      }
+      if (password !== confirm) {
+        setLocalError('Passwords do not match.');
+        return;
+      }
     }
 
     try {
@@ -111,7 +125,7 @@ export default function AuthScreen({
               autoComplete={isRegister ? 'new-password' : 'current-password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              minLength={6}
+              minLength={isRegister ? 8 : undefined}
               required
             />
           </label>
@@ -123,7 +137,7 @@ export default function AuthScreen({
                 autoComplete="new-password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                minLength={6}
+                minLength={8}
                 required
               />
             </label>
@@ -150,6 +164,12 @@ export default function AuthScreen({
 
         <p className="auth-card__hint">
           Your progress is saved to your account. No email required.
+          {isRegister && (
+            <>
+              {' '}
+              Use 8+ characters with at least one capital letter and one number.
+            </>
+          )}
         </p>
       </div>
     </div>

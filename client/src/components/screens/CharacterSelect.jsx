@@ -18,14 +18,7 @@ export default function CharacterSelect({ config, loading, error, onChooseClass,
   return (
     <div className="screen class-select">
       <div className="class-select__header">
-        <div>
-          <p className="eyebrow">Choose Your Hero</p>
-          <h1>Select a Class</h1>
-          <p>Each class has distinct stats, starter moves, and level-up growth.</p>
-        </div>
-        <button type="button" className="btn btn--ghost" onClick={onBack} disabled={loading}>
-          Back
-        </button>
+        <h1 className="screen-page-title class-select__title">Choose your hero</h1>
       </div>
 
       <div className="class-select__grid">
@@ -50,34 +43,43 @@ export default function CharacterSelect({ config, loading, error, onChooseClass,
 
       {selected && (
         <section className="class-detail">
-          <div>
-            <p className="eyebrow">Starting Stats</p>
-            <div className="class-detail__stats">
-              {STAT_KEYS.map((key) => (
-                <span key={key}>
-                  {statLabel(key)} <strong>{selected.baseStats?.[key] ?? 0}</strong>
-                </span>
-              ))}
+          <div className="class-detail__columns">
+            <div className="class-detail__col">
+              <p className="eyebrow">Starting Stats</p>
+              <ul className="class-detail__list">
+                {STAT_KEYS.map((key) => (
+                  <li key={key}>
+                    <span className="class-detail__label">{statLabel(key)}</span>
+                    <strong>{selected.baseStats?.[key] ?? 0}</strong>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="class-detail__col">
+              <p className="eyebrow">Growth Per Level</p>
+              <ul className="class-detail__list">
+                {STAT_KEYS.map((key) => (
+                  <li key={key}>
+                    <span className="class-detail__label">{statLabel(key)}</span>
+                    <strong>+{selected.levelUpGrowth?.[key] ?? 0}</strong>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
-          <div>
-            <p className="eyebrow">Growth Per Level</p>
-            <div className="class-detail__stats">
-              {STAT_KEYS.map((key) => (
-                <span key={key}>
-                  {statLabel(key)} <strong>+{selected.levelUpGrowth?.[key] ?? 0}</strong>
-                </span>
-              ))}
-            </div>
+          <div className="class-detail__actions">
+            <button type="button" className="btn btn--ghost" onClick={onBack} disabled={loading}>
+              Back
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => onChooseClass(selected.id)}
+              disabled={loading}
+            >
+              {loading ? 'Starting Run...' : 'Start'}
+            </button>
           </div>
-          <button
-            type="button"
-            className="btn btn--primary"
-            onClick={() => onChooseClass(selected.id)}
-            disabled={loading}
-          >
-            {loading ? 'Starting Run...' : `Start as ${selected.name}`}
-          </button>
           {error && <p className="main-menu__error">{error}</p>}
         </section>
       )}

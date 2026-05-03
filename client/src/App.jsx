@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { SCREENS } from './constants/gameConstants.js';
+import { RUN_SESSION_STORAGE_KEY, SCREENS } from './constants/gameConstants.js';
 import { MUSIC_CONTEXTS } from './constants/audio.js';
-import { JOURNEY_NODES } from './constants/overworld.js';
+import { mapNodes } from './constants/overworld.js';
 import useRunConfig from './hooks/useRunConfig.js';
 import useGameState from './hooks/useGameState.js';
 import useAuth from './hooks/useAuth.js';
@@ -13,39 +13,37 @@ import MainMenu from './components/screens/MainMenu.jsx';
 import CharacterSelect from './components/screens/CharacterSelect.jsx';
 import LoadGameScreen from './components/screens/LoadGameScreen.jsx';
 import SaveGameModal from './components/screens/SaveGameModal.jsx';
+import LeaveRunModal from './components/screens/LeaveRunModal.jsx';
 import RunMap from './components/screens/RunMap.jsx';
 import BattleScreen from './components/screens/BattleScreen.jsx';
 import PostBattle from './components/screens/PostBattle.jsx';
-import MoveManager from './components/screens/MoveManager.jsx';
-import Inventory from './components/screens/Inventory.jsx';
+import Configure from './components/screens/Configure.jsx';
 import Shop from './components/screens/Shop.jsx';
 import VictoryScreen from './components/screens/VictoryScreen.jsx';
 import AudioControls from './components/ui/AudioControls.jsx';
 import StatChoiceModal from './components/ui/StatChoiceModal.jsx';
 
-/**
- * Top-level component. Phase 3 wiring:
- *
- *   [not logged in] AuthScreen
- *          └─ login/register ──▶ MainMenu
- *
- *   MainMenu
- *      ├─ Start New Run  ─▶ fetch /run/config ─▶ Overworld
- *      ├─ Load Game      ─▶ LoadGameScreen ─▶ Overworld
- *      └─ Log out        ─▶ AuthScreen
- *
- *   Overworld (RunMap)
- *      ├─ click monster ─▶ Battle ─▶ PostBattle
- *      │                            └─ last kill ▶ Victory
- *      ├─ Moves         ─▶ MoveManager
- *      └─ Save          ─▶ SaveGameModal (overlay)
- */
+/** Mid-run screens: warn before main menu / tab close (hero is set). */
+const SCREENS_WITH_ACTIVE_RUN = new Set([
+  SCREENS.RUN_MAP,
+  SCREENS.BATTLE,
+  SCREENS.POST_BATTLE,
+  SCREENS.MOVE_MANAGER,
+  SCREENS.INVENTORY,
+  SCREENS.SHOP,
+  SCREENS.VICTORY,
+]);
+
+/** Root router: auth, menu, run map, battle, shop, saves. */
 export default function App() {
   const [screen, setScreen] = useState(SCREENS.MAIN_MENU);
+  const [sessionHydrated, setSessionHydrated] = useState(false);
   const [activeMonsterId, setActiveMonsterId] = useState(null);
+  const [activeNodeId, setActiveNodeId] = useState(null);
   const [lastOutcome, setLastOutcome] = useState(null);
   const [lastSummary, setLastSummary] = useState(null);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [leaveRunModalOpen, setLeaveRunModalOpen] = useState(false);
   const [levelUpQueue, setLevelUpQueue] = useState(0);
   const [levelUpSeed, setLevelUpSeed] = useState(0);
   const [lastBattleLog, setLastBattleLog] = useState([]);
@@ -60,6 +58,7 @@ export default function App() {
   const {
     hero,
     defeatedMonsterIds,
+    mapProgress,
     runStats,
     xpThreshold,
     startRun,
@@ -70,12 +69,146 @@ export default function App() {
     applyBattleOutcome,
     applyLevelUpChoice,
     buyItem,
+    shopPurchasedSlots,
+    markMapNodeVisited,
+    setJourneyMapPageIndex,
+    clearMapNode,
     equipItem,
     unequipItem,
     snapshotForSave,
   } = useGameState();
 
   const maxEquipped = config?.constants?.MAX_EQUIPPED_MOVES ?? 4;
+
+  useEffect(() => {
+    if (!auth.isAuthenticated || auth.checking) return;
+    const raw = sessionStorage.getItem(RUN_SESSION_STORAGE_KEY);
+    if (!raw) {
+      queueMicrotask(() => setSessionHydrated(true));
+      return;
+    }
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      sessionStorage.removeItem(RUN_SESSION_STORAGE_KEY);
+      queueMicrotask(() => setSessionHydrated(true));
+      return;
+    }
+    if (data.playerId != null && data.playerId !== auth.player?.id) {
+      sessionStorage.removeItem(RUN_SESSION_STORAGE_KEY);
+      queueMicrotask(() => setSessionHydrated(true));
+      return;
+    }
+    if (data.screen === SCREENS.MAIN_MENU) {
+      sessionStorage.removeItem(RUN_SESSION_STORAGE_KEY);
+      queueMicrotask(() => setSessionHydrated(true));
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const cfg = await load();
+        if (cancelled) return;
+        if (data.save) {
+          loadRun(data.save, cfg);
+        }
+        if (data.screen) setScreen(data.screen);
+        if ('activeMonsterId' in data) setActiveMonsterId(data.activeMonsterId ?? null);
+        if ('activeNodeId' in data) setActiveNodeId(data.activeNodeId ?? null);
+        if ('lastOutcome' in data) setLastOutcome(data.lastOutcome ?? null);
+        if ('lastSummary' in data) setLastSummary(data.lastSummary ?? null);
+        if (typeof data.levelUpQueue === 'number') setLevelUpQueue(data.levelUpQueue);
+        setRunBattleLog(Array.isArray(data.runBattleLog) ? data.runBattleLog : []);
+        if (Array.isArray(data.lastBattleLog)) setLastBattleLog(data.lastBattleLog);
+        if ('activeMerchantId' in data) setActiveMerchantId(data.activeMerchantId ?? null);
+        if (typeof data.saveModalOpen === 'boolean') setSaveModalOpen(data.saveModalOpen);
+      } catch (e) {
+        console.warn('[session] restore failed', e);
+        sessionStorage.removeItem(RUN_SESSION_STORAGE_KEY);
+      } finally {
+        setSessionHydrated(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    auth.isAuthenticated,
+    auth.checking,
+    auth.player?.id,
+    load,
+    loadRun,
+  ]);
+
+  useEffect(() => {
+    if (!sessionHydrated || !auth.isAuthenticated) return;
+    if (screen === SCREENS.MAIN_MENU) {
+      sessionStorage.removeItem(RUN_SESSION_STORAGE_KEY);
+      return;
+    }
+    if (screen === SCREENS.CLASS_SELECT || screen === SCREENS.LOAD_GAME) {
+      const payload = {
+        v: 1,
+        playerId: auth.player?.id ?? null,
+        screen,
+        activeMonsterId: null,
+        activeNodeId: null,
+        lastOutcome: null,
+        lastSummary: null,
+        levelUpQueue: 0,
+        runBattleLog: [],
+        lastBattleLog: [],
+        activeMerchantId: null,
+        saveModalOpen: false,
+      };
+      sessionStorage.setItem(RUN_SESSION_STORAGE_KEY, JSON.stringify(payload));
+      return;
+    }
+    if (!hero) return;
+    const snap = snapshotForSave('__session__');
+    if (!snap) return;
+    sessionStorage.setItem(
+      RUN_SESSION_STORAGE_KEY,
+      JSON.stringify({
+        v: 1,
+        playerId: auth.player?.id ?? null,
+        screen,
+        activeMonsterId,
+        activeNodeId,
+        lastOutcome,
+        lastSummary,
+        levelUpQueue,
+        runBattleLog,
+        lastBattleLog,
+        activeMerchantId,
+        saveModalOpen,
+        save: {
+          heroState: snap.heroState,
+          defeatedMonsterIds: snap.defeatedMonsterIds,
+          runStats: snap.runStats,
+          shopPurchasedSlots: snap.shopPurchasedSlots ?? [],
+        },
+      })
+    );
+  }, [
+    sessionHydrated,
+    auth.isAuthenticated,
+    auth.player?.id,
+    screen,
+    hero,
+    activeMonsterId,
+    activeNodeId,
+    lastOutcome,
+    lastSummary,
+    levelUpQueue,
+    runBattleLog,
+    lastBattleLog,
+    activeMerchantId,
+    saveModalOpen,
+    snapshotForSave,
+  ]);
 
   useEffect(() => {
     let context = MUSIC_CONTEXTS.TITLE;
@@ -99,14 +232,23 @@ export default function App() {
     audio.playMusic(context);
   }, [audio, auth.isAuthenticated, lastOutcome, screen]);
 
-  // --- Run lifecycle -------------------------------------------------------
+  /* Browser tab close / refresh: native prompt only (custom UI not allowed here). */
+  useEffect(() => {
+    if (!hero || !SCREENS_WITH_ACTIVE_RUN.has(screen)) return undefined;
+    const onBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [hero, screen]);
 
   const openClassSelect = useCallback(async () => {
     try {
       await load();
       setScreen(SCREENS.CLASS_SELECT);
     } catch {
-      // error surfaced via the hook
+      /* useRunConfig exposes error */
     }
   }, [load]);
 
@@ -128,20 +270,22 @@ export default function App() {
       try {
         const fresh = await load();
         loadRun(save, fresh);
-      setRunBattleLog([]);
-      setLastBattleLog([]);
+        setRunBattleLog([]);
+        setLastBattleLog([]);
         setScreen(SCREENS.RUN_MAP);
       } catch {
-        // error surfaced via hook
+        /* useRunConfig exposes error */
       }
     },
     [load, loadRun]
   );
 
   const backToMenu = useCallback(() => {
+    setLeaveRunModalOpen(false);
     reset();
     endRun();
     setActiveMonsterId(null);
+    setActiveNodeId(null);
     setLastOutcome(null);
     setLastSummary(null);
     setActiveMerchantId(null);
@@ -151,10 +295,23 @@ export default function App() {
     setScreen(SCREENS.MAIN_MENU);
   }, [reset, endRun]);
 
-  // --- Battle --------------------------------------------------------------
+  const requestLeaveToMenu = useCallback(() => {
+    if (hero && SCREENS_WITH_ACTIVE_RUN.has(screen)) {
+      setLeaveRunModalOpen(true);
+      return;
+    }
+    backToMenu();
+  }, [hero, screen, backToMenu]);
 
-  const selectMonster = useCallback((monsterId) => {
-    setActiveMonsterId(monsterId);
+  const openSaveFromLeavePrompt = useCallback(() => {
+    setLeaveRunModalOpen(false);
+    saves.refresh();
+    setSaveModalOpen(true);
+  }, [saves]);
+
+  const selectNode = useCallback((node) => {
+    setActiveNodeId(node.id);
+    setActiveMonsterId(node.monsterId);
     setScreen(SCREENS.BATTLE);
   }, []);
 
@@ -168,6 +325,9 @@ export default function App() {
         outcome: payload.outcome,
         xpGained: summary.xpGained ?? 0,
         battleLog: payload.battleLog ?? [],
+        mapNodeId: payload.mapNodeId,
+        nodeType: payload.nodeType,
+        biomeId: payload.biomeId,
         startedAt: payload.battleStartedAt,
         endedAt: payload.battleEndedAt,
       }).catch((err) => {
@@ -198,46 +358,53 @@ export default function App() {
   );
 
   const onPostBattleContinue = useCallback(() => {
-    const runMonsterIds = new Set(JOURNEY_NODES.map((node) => node.id));
-    const allCleared =
-      config &&
-      config.monsters
-        .filter((m) => runMonsterIds.has(m.id))
-        .every((m) => defeatedMonsterIds.includes(m.id));
+    const allCleared = Boolean(mapProgress?.bossDefeated);
 
     if (lastOutcome === 'defeat') {
       fullHealHero();
     }
 
     setActiveMonsterId(null);
+    setActiveNodeId(null);
     setLastOutcome(null);
     setLastSummary(null);
 
     if (allCleared) {
+      setRunBattleLog((log) => {
+        if (log.length > 0) return log;
+        if (!lastBattleLog?.length) return log;
+        return [
+          '— Run log was missing from memory; showing the last battle only —',
+          ...lastBattleLog,
+        ];
+      });
       setScreen(SCREENS.VICTORY);
     } else {
       setScreen(SCREENS.RUN_MAP);
     }
-  }, [config, defeatedMonsterIds, lastOutcome, fullHealHero]);
+  }, [mapProgress?.bossDefeated, lastOutcome, fullHealHero, lastBattleLog]);
 
   const leaveBattleToMap = useCallback(() => {
     fullHealHero();
     setActiveMonsterId(null);
+    setActiveNodeId(null);
     setScreen(SCREENS.RUN_MAP);
   }, [fullHealHero]);
 
-  // --- Move manager --------------------------------------------------------
-
-  const openMoveManager = useCallback(() => setScreen(SCREENS.MOVE_MANAGER), []);
-  const closeMoveManager = useCallback(() => setScreen(SCREENS.RUN_MAP), []);
-  const openInventory = useCallback(() => setScreen(SCREENS.INVENTORY), []);
-  const closeInventory = useCallback(() => setScreen(SCREENS.RUN_MAP), []);
-  const openShop = useCallback((merchantId) => {
+  const openConfigure = useCallback(() => setScreen(SCREENS.MOVE_MANAGER), []);
+  const closeConfigure = useCallback(() => setScreen(SCREENS.RUN_MAP), []);
+  const openShop = useCallback((merchantId, nodeId = null) => {
+    if (nodeId) {
+      setActiveNodeId(nodeId);
+      markMapNodeVisited(nodeId);
+      clearMapNode(nodeId);
+    }
     setActiveMerchantId(merchantId);
     setScreen(SCREENS.SHOP);
-  }, []);
+  }, [clearMapNode, markMapNodeVisited]);
   const closeShop = useCallback(() => {
     setActiveMerchantId(null);
+    setActiveNodeId(null);
     setScreen(SCREENS.RUN_MAP);
   }, []);
   const saveMoveLoadout = useCallback(
@@ -247,8 +414,6 @@ export default function App() {
     },
     [updateEquippedMoves]
   );
-
-  // --- Save / Load ---------------------------------------------------------
 
   const openSaveModal = useCallback(() => setSaveModalOpen(true), []);
   const closeSaveModal = useCallback(() => setSaveModalOpen(false), []);
@@ -273,24 +438,35 @@ export default function App() {
     [snapshotForSave, saves]
   );
 
-  // --- Derived -------------------------------------------------------------
-
+  const currentMapNodes = useMemo(() => (config ? mapNodes(config) : []), [config]);
   const activeMonster = config?.monsters?.find((m) => m.id === activeMonsterId);
+  const activeNode = currentMapNodes.find((node) => node.id === activeNodeId) ?? null;
+  const activeBiome = activeNode?.biomeId ? config?.biomeConfig?.[activeNode.biomeId] : null;
+  const activeArenaTheme = activeBiome?.arenaTheme ? config?.arenaThemes?.[activeBiome.arenaTheme] : null;
   const activeMerchant = config?.shopConfig?.merchants?.find((merchant) => merchant.id === activeMerchantId);
   const defeatedMonstersInOrder = useMemo(() => {
     if (!config) return [];
-    const runMonsterIds = new Set(JOURNEY_NODES.map((node) => node.id));
+    const runMonsterIds = new Set(currentMapNodes.map((node) => node.monsterId).filter(Boolean));
     return config.monsters
       .filter((m) => runMonsterIds.has(m.id) && defeatedMonsterIds.includes(m.id))
       .sort((a, b) => a.order - b.order);
-  }, [config, defeatedMonsterIds]);
+  }, [config, currentMapNodes, defeatedMonsterIds]);
+
+  /** Full-run log for victory; fall back to last fight if aggregate was lost (e.g. old session). */
+  const victoryBattleLog = useMemo(() => {
+    if (runBattleLog.length > 0) return runBattleLog;
+    if (lastBattleLog.length > 0) return lastBattleLog;
+    return [];
+  }, [runBattleLog, lastBattleLog]);
 
   const suggestedSaveName = useMemo(() => {
-    if (!auth.player || !hero) return '';
-    return `${auth.player.username} Lv${hero.level} · ${defeatedMonsterIds.length}/5`;
-  }, [auth.player, hero, defeatedMonsterIds.length]);
-
-  // --- Render --------------------------------------------------------------
+    if (!hero) return '';
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `Level ${hero.level} - ${dd}/${mm}/${yyyy}`;
+  }, [hero]);
 
   if (auth.checking) {
     return (
@@ -298,6 +474,18 @@ export default function App() {
         <div className="screen auth-screen">
           <div className="auth-card">
             <p className="auth-card__hint">Checking session…</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (auth.isAuthenticated && !sessionHydrated) {
+    return (
+      <div className="app">
+        <div className="screen auth-screen">
+          <div className="auth-card">
+            <p className="auth-card__hint">Restoring run…</p>
           </div>
         </div>
       </div>
@@ -319,8 +507,13 @@ export default function App() {
     );
   }
 
+  const runShellLayout =
+    screen === SCREENS.RUN_MAP ||
+    screen === SCREENS.MOVE_MANAGER ||
+    screen === SCREENS.INVENTORY;
+
   return (
-    <div className="app">
+    <div className={`app${runShellLayout ? ' app--run-shell' : ''}`}>
       <AudioControls audio={audio} />
       {screen === SCREENS.MAIN_MENU && (
         <MainMenu
@@ -333,6 +526,7 @@ export default function App() {
           onLogout={() => {
             reset();
             endRun();
+            sessionStorage.removeItem(RUN_SESSION_STORAGE_KEY);
             auth.logout();
           }}
         />
@@ -344,7 +538,7 @@ export default function App() {
           loading={loading}
           error={error}
           onChooseClass={startGame}
-          onBack={backToMenu}
+          onBack={requestLeaveToMenu}
         />
       )}
 
@@ -365,24 +559,29 @@ export default function App() {
           config={config}
           hero={hero}
           defeatedMonsterIds={defeatedMonsterIds}
+          mapProgress={mapProgress}
+          mapPageIndex={mapProgress?.lastMapPageIndex ?? 0}
+          onMapPageChange={setJourneyMapPageIndex}
           xpThreshold={xpThreshold}
-          onSelectMonster={selectMonster}
-          onOpenMoveManager={openMoveManager}
-          onOpenInventory={openInventory}
+          onSelectNode={selectNode}
+          onOpenConfigure={openConfigure}
           onOpenShop={openShop}
           onOpenSave={openSaveModal}
-          onBackToMenu={backToMenu}
+          onBackToMenu={requestLeaveToMenu}
         />
       )}
 
       {screen === SCREENS.BATTLE && activeMonster && hero && (
         <BattleScreen
-          key={activeMonster.id + '-' + defeatedMonsterIds.length}
+          key={`${activeNode?.id ?? activeMonster.id}-${defeatedMonsterIds.length}`}
           hero={hero}
           monster={activeMonster}
           moves={config.moves}
           items={config.items}
           constants={config.constants}
+          node={activeNode}
+          biome={activeBiome}
+          arenaTheme={activeArenaTheme}
           audio={audio}
           onBattleEnd={onBattleEnd}
           onExitBattle={leaveBattleToMap}
@@ -403,23 +602,17 @@ export default function App() {
       )}
 
       {screen === SCREENS.MOVE_MANAGER && hero && config && (
-        <MoveManager
+        <Configure
           hero={hero}
           moves={config.moves}
-          maxEquipped={maxEquipped}
-          onSave={saveMoveLoadout}
-          onBack={closeMoveManager}
-        />
-      )}
-
-      {screen === SCREENS.INVENTORY && hero && config && (
-        <Inventory
-          hero={hero}
           items={config.items}
           constants={config.constants}
+          xpThreshold={xpThreshold}
+          maxEquipped={maxEquipped}
+          onSaveMoves={saveMoveLoadout}
           onEquip={equipItem}
           onUnequip={unequipItem}
-          onBack={closeInventory}
+          onBack={closeConfigure}
         />
       )}
 
@@ -429,6 +622,7 @@ export default function App() {
           items={config.items}
           merchant={activeMerchant}
           constants={config.constants}
+          shopPurchasedSlots={shopPurchasedSlots}
           onBuy={buyItem}
           onBack={closeShop}
         />
@@ -439,9 +633,17 @@ export default function App() {
           hero={hero}
           moves={config.moves}
           runStats={runStats}
-          battleLog={runBattleLog}
+          battleLog={victoryBattleLog}
           defeatedMonsters={defeatedMonstersInOrder}
-          onBackToMenu={backToMenu}
+          onBackToMenu={requestLeaveToMenu}
+        />
+      )}
+
+      {leaveRunModalOpen && (
+        <LeaveRunModal
+          onSaveFirst={openSaveFromLeavePrompt}
+          onLeaveWithoutSaving={backToMenu}
+          onDismiss={() => setLeaveRunModalOpen(false)}
         />
       )}
 
@@ -459,10 +661,8 @@ export default function App() {
 
       {screen === SCREENS.POST_BATTLE && levelUpQueue > 0 && hero && (
         <StatChoiceModal
-          levelNumber={hero.level + 1}
           queueRemaining={levelUpQueue}
           rngSeed={levelUpSeed}
-          classGrowth={hero.levelUpGrowth}
           onChoose={onPickLevelUp}
         />
       )}

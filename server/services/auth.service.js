@@ -20,6 +20,25 @@ function getJwtExpiresIn() {
   return process.env.JWT_EXPIRES_IN || '7d';
 }
 
+/** Register-only: length, one uppercase Latin letter, one digit. */
+export function assertPasswordPolicy(password) {
+  if (typeof password !== 'string' || password.length < 8) {
+    const err = new Error('Password must be at least 8 characters.');
+    err.status = 400;
+    throw err;
+  }
+  if (!/[A-Z]/.test(password)) {
+    const err = new Error('Password must include at least one capital letter.');
+    err.status = 400;
+    throw err;
+  }
+  if (!/\d/.test(password)) {
+    const err = new Error('Password must include at least one number.');
+    err.status = 400;
+    throw err;
+  }
+}
+
 export function signToken(player) {
   return jwt.sign(
     { sub: player.id, username: player.username, role: player.role },
@@ -44,11 +63,7 @@ export async function registerPlayer(username, password) {
     err.status = 400;
     throw err;
   }
-  if (typeof password !== 'string' || password.length < 6) {
-    const err = new Error('Password must be at least 6 characters.');
-    err.status = 400;
-    throw err;
-  }
+  assertPasswordPolicy(password);
 
   const existing = await prisma.player.findUnique({ where: { username: normalized } });
   if (existing) {

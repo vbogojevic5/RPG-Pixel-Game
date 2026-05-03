@@ -1,24 +1,44 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import MoveButton from '../ui/MoveButton.jsx';
 import Sprite from '../ui/Sprite.jsx';
 import BattleLog from '../ui/BattleLog.jsx';
+import SpellBurst, { ensureParticleEngine } from '../ui/SpellBurst.jsx';
+import StatusOverlay from '../ui/StatusOverlay.jsx';
 import useBattle from '../../hooks/useBattle.js';
 import { statLabel } from '../../constants/movePresentation.js';
 import { formatItemEffect, itemIcon, itemIconSrc } from '../../constants/itemPresentation.js';
 
-/**
- * BattleScreen — Ninja-Saga-style arena.
- *
- * Phase 3 additions:
- *   - Full scrollable BattleLog panel pinned to the arena.
- *   - Status chips (bleed/poison/burn) under each fighter's HP bar.
- *   - Move buttons have real hover tooltips (handled in MoveButton).
- */
-export default function BattleScreen({ hero, monster, moves, items, constants, audio, onBattleEnd, onExitBattle }) {
+function BattleItemIcon({ item }) {
+  const [failed, setFailed] = useState(false);
+  const src = itemIconSrc(item);
+  if (src && !failed) {
+    return <img src={src} alt="" draggable={false} onError={() => setFailed(true)} />;
+  }
+  return itemIcon(item);
+}
+
+/** Arena battle UI: sprites, move bar, battle log, floating combat text. */
+export default function BattleScreen({
+  hero,
+  monster,
+  moves,
+  items,
+  constants,
+  node,
+  biome,
+  arenaTheme,
+  audio,
+  onBattleEnd,
+  onExitBattle,
+}) {
   const battle = useBattle({ hero, monster, moves, items, constants });
   const battleStartedAt = useRef(new Date().toISOString());
   const outcomeSfxPlayed = useRef(false);
   const heardFloaters = useRef(new Set());
+
+  useEffect(() => {
+    ensureParticleEngine();
+  }, []);
 
   useEffect(() => {
     if (battle.isOver) {
@@ -31,6 +51,9 @@ export default function BattleScreen({ hero, monster, moves, items, constants, a
           xpReward: monster.xpReward ?? 0,
           monsterMoves: monster.moves ?? [],
           battleLog: battle.log,
+          mapNodeId: node?.id ?? null,
+          nodeType: node?.type ?? null,
+          biomeId: biome?.id ?? node?.biomeId ?? null,
           battleStartedAt: battleStartedAt.current,
           battleEndedAt: new Date().toISOString(),
         });
@@ -46,6 +69,8 @@ export default function BattleScreen({ hero, monster, moves, items, constants, a
     monster.id,
     monster.xpReward,
     monster.moves,
+    node,
+    biome,
     onBattleEnd,
   ]);
 
@@ -77,9 +102,11 @@ export default function BattleScreen({ hero, monster, moves, items, constants, a
     }
   }, [audio, battle.floaters]);
 
+  const arenaShakeClass = battle.shake ? `arena--shake-${battle.shake.tier}` : '';
+
   return (
-    <div className="screen arena-screen">
-      <div className="arena">
+    <div className={`screen arena-screen ${arenaTheme?.className ?? 'arena-theme--forest'}`}>
+      <div className={`arena ${arenaShakeClass}`}>
         <div className="arena__sky" />
         <div className="arena__forest arena__forest--back" />
         <div className="arena__moon" />
@@ -100,7 +127,7 @@ export default function BattleScreen({ hero, monster, moves, items, constants, a
           side="left"
           name={battle.monsterState.name}
           level={null}
-          subtitle="Foe"
+          subtitle={null}
           spriteId={monster.id}
           hp={battle.monsterState.currentHealth}
           hpMax={battle.monsterState.stats.health}
@@ -128,7 +155,10 @@ export default function BattleScreen({ hero, monster, moves, items, constants, a
             battle.animation?.actor === 'hero' ? 'arena__fighter--acting' : ''
           } ${battle.animation?.target === 'hero' ? 'arena__fighter--hit' : ''}`}
         >
-          <Sprite kind="character" id={hero.id} size={160} facing="right" />
+          <div className="arena__fighter-stack">
+            <Sprite kind="character" id={hero.id} size={160} facing="right" />
+            <StatusOverlay statuses={battle.heroState.statuses} />
+          </div>
           <div className="arena__fighter-shadow" />
         </div>
         <div
@@ -136,20 +166,34 @@ export default function BattleScreen({ hero, monster, moves, items, constants, a
             battle.animation?.actor === 'monster' ? 'arena__fighter--acting' : ''
           } ${battle.animation?.target === 'monster' ? 'arena__fighter--hit' : ''}`}
         >
-          <Sprite kind="character" id={monster.id} size={160} facing="left" />
+          <div className="arena__fighter-stack">
+            <Sprite kind="character" id={monster.id} size={160} facing="left" />
+            <StatusOverlay statuses={battle.monsterState.statuses} />
+          </div>
           <div className="arena__fighter-shadow" />
         </div>
 
         {battle.animation && (
           <div
-            className={`arena__impact arena__impact--${battle.animation.target} arena__impact--${battle.animation.type}`}
+            className={`arena__impact arena__impact--${battle.animation.target} arena__impact--${battle.animation.type} arena__impact--effect-${battle.animation.effectKey ?? battle.animation.type}`}
           />
         )}
+
+        {battle.bursts.map((burst) => (
+          <SpellBurst
+            key={burst.id}
+            burstId={burst.id}
+            side={burst.side}
+            effectKey={burst.effectKey}
+            intensity={burst.intensity}
+            lifetimeMs={burst.lifetimeMs}
+          />
+        ))}
 
         {battle.floaters.map((floater) => (
           <div
             key={floater.id}
-            className={`arena__floater arena__floater--${floater.side} arena__floater--${floater.kind}`}
+            className={`arena__floater arena__floater--${floater.side} arena__floater--${floater.kind} arena__floater--size-${floater.size ?? 'small'}`}
           >
             {floater.text}
           </div>
@@ -207,7 +251,7 @@ export default function BattleScreen({ hero, monster, moves, items, constants, a
                   title={item.description}
                 >
                   <span className="item-btn__icon" aria-hidden>
-                    {itemIconSrc(item) ? <img src={itemIconSrc(item)} alt="" draggable={false} /> : itemIcon(item)}
+                    <BattleItemIcon item={item} />
                   </span>
                   <span className="item-btn__body">
                     <span className="item-btn__name">{item.name}</span>
@@ -245,26 +289,26 @@ function Nameplate({ side, name, level, subtitle, spriteId, hp, hpMax, mana, man
           <span className="nameplate__name">{name}</span>
           {level != null ? (
             <span className="nameplate__level">Lv {level}</span>
-          ) : (
+          ) : subtitle ? (
             <span className="nameplate__tag">{subtitle}</span>
-          )}
+          ) : null}
         </div>
         <div className="nameplate__hp-row">
-          <div className="nameplate__hp">
+          <div className="nameplate__bar nameplate__bar--hp">
             <div className={`nameplate__hp-fill ${tier}`} style={{ width: `${pct}%` }} />
+            <span className="nameplate__bar-label">
+              {Math.max(0, Math.round(hp))}/{hpMax}
+            </span>
           </div>
-          <span className="nameplate__hp-nums">
-            {Math.max(0, Math.round(hp))}/{hpMax}
-          </span>
         </div>
         {manaMax > 0 && (
           <div className="nameplate__mana-row">
-            <div className="nameplate__mana">
+            <div className="nameplate__bar nameplate__bar--mana">
               <div className="nameplate__mana-fill" style={{ width: `${manaPct}%` }} />
+              <span className="nameplate__bar-label nameplate__bar-label--mana">
+                {Math.max(0, Math.round(mana))}/{manaMax}
+              </span>
             </div>
-            <span className="nameplate__mana-nums">
-              {Math.max(0, Math.round(mana))}/{manaMax} MP
-            </span>
           </div>
         )}
         <ul className="nameplate__buffs">

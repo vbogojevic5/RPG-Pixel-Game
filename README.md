@@ -1,108 +1,58 @@
-# Knight's Gauntlet — Full Stack RPG (Phase 1)
+# Knight's Gauntlet
 
-Turn-based RPG where a Knight fights through a gauntlet of 5 monsters.
-Game logic (monster configs, AI, move definitions) lives on the server so the
-Game Designer can rebalance without a client rebuild.
+A browser **turn-based RPG**: pick a hero class, follow a branching journey map, fight monsters, earn loot and XP, manage moves and gear, and finish the run. **Auth, saves, and game data** (monsters, moves, map, items) live on the server so balance and content can change without rebuilding the game client.
 
-See [`instructions.md`](./instructions.md) for the full spec and
-[`TODO.md`](./TODO.md) for phase-by-phase progress.
+There's plenty of room to expand and polish the project—especially visually—but with limited time, this is the version that shipped, and as my first game project, I'm quite proud of it.
 
-## What Phase 1 ships
+## Services
 
-- **Main Menu** with Start Game (functional), Load Game / Exit (no-op placeholders).
-- **Run Map** showing all 5 encounter nodes. Only the first (Goblin Warrior) is playable.
-- **Battle Screen** with full fight logic — physical / magic / heal / buff / debuff, damage formulas, turn-based HP updates (no animations).
-- **Post-Battle** screen with outcome + randomly learned move on victory.
-- **Server** with `GET /run/config` and `GET /battle/monster-move?state=<base64-json>` (random monster AI).
+| Service | Role |
+|--------|------|
+| **PostgreSQL** | Stores players, saves, and tunable game config (Prisma). |
+| **API** (`server`) | Express REST: auth, run config, battle AI move, saves, admin endpoints. |
+| **Game client** (`client`) | React + Vite — the player-facing app (default **http://localhost:5173**). |
+| **Admin** (`admin`) | React + Vite — operators tune config and inspect users/saves/battles (**http://localhost:5174**). |
 
-## Stack
+## Tech stack (high level)
 
-- **Server**: Node.js + Express 5 (ES modules)
-- **Client**: React 19 + Vite 8 + plain CSS
-- **No database, no auth, no game engine.** Just two REST endpoints and a stateful React app.
+**Frontend:** React, Vite, plain CSS. **Backend:** Node.js, Express, Prisma, JWT auth. **Database:** PostgreSQL. **Containers:** Docker Compose for the full stack or DB-only.
 
-## Asset Credits
+## Start with Docker
 
-- Ability icons are loaded from [Game-icons.net](https://game-icons.net/) under CC BY 3.0 / CC0 depending on the icon. Icons used here are by Lorc, Delapouite, and Zeromancer.
-- Music uses [Glizzy Elf Forest [RPG MUSIC PACK]](https://opengameart.org/content/glizzy-elf-forest-rpg-music-pack) by Zane Little Music, CC0.
-- UI and battle sound effects use [Kenney RPG Audio / 50 RPG sound effects](https://opengameart.org/content/50-rpg-sound-effects), CC0.
+From the **repository root**:
 
-## Run it locally
+```bash
+docker compose up -d --build
+```
 
-You'll need one terminal per process.
+Waits for Postgres, runs migrations and seed on the API container, then starts all services.
 
-### 1. Server (port 3001)
+- **Game:** http://localhost:5173  
+- **API:** http://localhost:3001 (e.g. `GET /health`, `GET /run/config`)  
+- **Admin:** http://localhost:5174  
+
+Promote a player to admin (after you register that user in the game). Use `server/.env` with a `DATABASE_URL` that matches your Compose Postgres (e.g. `localhost:5433` from the host).
 
 ```bash
 cd server
 npm install
-npm run dev     # or: npm start
-```
-
-Sanity check:
-```
-GET http://localhost:3001/health       -> { "ok": true, "service": "rpg-server" }
-GET http://localhost:3001/run/config   -> full hero + monsters + moves JSON
-```
-
-### 2. Client (port 5173, Vite default)
-
-```bash
-cd client
-npm install
-npm run dev
-```
-
-Open `http://localhost:5173/` in a browser. The client talks to the server at
-`http://localhost:3001` by default — override via the `VITE_API_BASE_URL`
-environment variable if you host them elsewhere.
-
-### 3. Admin app (port 5174)
-
-```bash
-cd admin
-npm install
-npm run dev
-```
-
-Promote an existing player account before signing into the admin console:
-
-```bash
-cd server
 npm run admin:promote -- <username>
 ```
 
-Open `http://localhost:5174/`. The admin app uses the same server API base URL
-override: `VITE_API_BASE_URL`.
+Stop everything:
 
-## Project layout
-
-```
-/server
-  config.js                ← hero + monsters + moves + constants (single source of truth)
-  index.js, server.js      ← Express app boot
-  routes/                  ← run + battle route files
-  controllers/             ← request handlers
-  logic/                   ← ai.js (random), combat.js (pure math)
-  middleware/              ← errorHandler, validateBattleState (decodes base64)
-  models/                  ← empty shells, fleshed out in Phase 2
-
-/client/src
-  App.jsx                  ← top-level screen router
-  components/screens/      ← MainMenu, RunMap, BattleScreen, PostBattle
-  components/ui/           ← HPBar, MoveButton (+ Phase 2+ stubs)
-  hooks/                   ← useRunConfig, useGameState, useBattle (fight engine)
-  services/api.js          ← all fetch() calls
-  constants/               ← screen names, API base URL
-  styles/                  ← global, ui, map, battle CSS
+```bash
+docker compose down
 ```
 
-## What's NOT in Phase 1 (see TODO.md)
+### Database only (local API + Vite on your machine)
 
-- Monsters 2–5 (visually locked on the map)
-- XP / leveling
-- Move Manager (equip/unequip)
-- Victory Screen (full run completion)
-- Battle log panel, tooltips, animations
-- Save & Exit via localStorage
-- Smarter monster AI
+```bash
+docker compose -f docker-compose.db.yml up -d
+```
+
+Point `server/.env` at Postgres on **localhost:5433** (see `server/.env.example`), then from `server/` run migrations/seed if needed and `npm run dev`; run `client` and `admin` with `npm run dev` as usual. Set `VITE_API_BASE_URL=http://localhost:3001` if the client is not using the default.
+
+## Asset credits
+
+Ability icons: [Game-icons.net](https://game-icons.net/) (CC BY 3.0 / CC0). Music: [Glizzy Elf Forest RPG Music Pack](https://opengameart.org/content/glizzy-elf-forest-rpg-music-pack) (CC0). UI/SFX: [Kenney RPG Audio](https://opengameart.org/content/50-rpg-sound-effects) (CC0).

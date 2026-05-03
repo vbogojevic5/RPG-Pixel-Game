@@ -5,7 +5,7 @@ import { formatMoveStat, moveIcon, statLabel } from '../../constants/movePresent
  *
  * Accepts children to wrap (the hover target) and a `content` node to
  * render as the floating card. Pure CSS hover — no JS positioning
- * gymnastics; positioning is handled in phase3.css (absolute, above
+ * gymnastics; positioning is handled in ui.css (absolute, above
  * the wrapper, centered).
  */
 export default function Tooltip({ content, children, disabled }) {
@@ -38,7 +38,7 @@ export function MoveTooltipCard({ move }) {
       {(move.cost?.mana || move.cost?.health) && (
         <div className="tooltip__status tooltip__status--mana">
           Cost:
-          {move.cost?.mana ? ` ${move.cost.mana} MP` : ''}
+          {move.cost?.mana ? ` ${move.cost.mana} MANA` : ''}
           {move.cost?.health ? ` ${move.cost.health} HP` : ''}
         </div>
       )}

@@ -1,22 +1,73 @@
+# Full stack (API + Postgres + Vite apps). DB-only: docker compose -f docker-compose.db.yml up -d
 services:
   postgres:
-    image: postgres:17-alpine
-    container_name: rpg-postgres
-    restart: unless-stopped
+    image: postgres:16-alpine
     environment:
       POSTGRES_USER: rpg
       POSTGRES_PASSWORD: rpg_dev_password
       POSTGRES_DB: rpg_game
     ports:
-      # Host 5433 -> container 5432 (5432 is occupied by a local Postgres install on this machine).
       - "5433:5432"
     volumes:
-      - rpg_postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U rpg -d rpg_game"]
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 10s
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://rpg:rpg_dev_password@postgres:5432/rpg_game?schema=public
+      JWT_SECRET: ${JWT_SECRET:-change-me-docker}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      PORT: "3001"
+      CORS_ORIGINS: http://localhost:5173,http://localhost:5174
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE_URL: http://localhost:3001
+    depends_on:
+      server:
+        condition: service_healthy
+
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+    ports:
+      - "5174:5174"
+    environment:
+      VITE_API_BASE_URL: http://localhost:3001
+    depends_on:
+      server:
+        condition: service_healthy
 
 volumes:
-  rpg_postgres_data:
+  postgres_data:

@@ -2,15 +2,7 @@ import { pickMonsterMove } from '../logic/ai.js';
 import { loadMovesById } from '../services/config.service.js';
 import { prisma } from '../db.js';
 
-/**
- * GET /battle/monster-move?state=<base64-json>
- *
- * The `state` query param is a base64-encoded JSON blob describing the
- * current battle state. `validateBattleState` middleware decodes it and
- * attaches the parsed object to `req.battleState`.
- *
- * Returns: { move: <moveId> }
- */
+/** GET /battle/monster-move — returns `{ move }` from AI; state on `req.battleState`. */
 export async function getMonsterMove(req, res) {
   const state = req.battleState;
   const movesById = await loadMovesById();

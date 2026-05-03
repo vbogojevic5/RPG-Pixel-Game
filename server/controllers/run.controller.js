@@ -13,6 +13,8 @@ import { loadConfig } from '../services/config.service.js';
 export async function getRunConfig(_req, res, next) {
   try {
     const config = await loadConfig();
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.set('Pragma', 'no-cache');
     res.json(config);
   } catch (err) {
     next(err);

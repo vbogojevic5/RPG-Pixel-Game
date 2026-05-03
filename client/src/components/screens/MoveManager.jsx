@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { formatMoveStat, moveIcon, moveIconSrc } from '../../constants/movePresentation.js';
+import { getMoveStatLines, moveIcon, moveIconSrc } from '../../constants/movePresentation.js';
 
 /**
  * MoveManager — equip / unequip moves between fights.
@@ -91,7 +91,7 @@ export default function MoveManager({
       </section>
 
       <div className="manager__section-title">Known Moves</div>
-      <div className="manager__grid">
+      <div className="manager__grid manager__known-moves-grid">
         {known.map((m) => {
           const on = isEquipped(m.id);
           const canEquip = !on && equipped.length < maxEquipped;
@@ -100,25 +100,40 @@ export default function MoveManager({
             <button
               key={m.id}
               type="button"
-              className={`manager__card manager__card--${m.type} ${on ? 'is-equipped' : ''}`}
+              className={`manager__card manager__card--move manager__card--${m.type} ${on ? 'is-equipped' : ''}`}
               onClick={() => equip(m.id)}
               disabled={on || !canEquip}
               title={m.description}
               data-sfx="equip"
             >
-              <span className="manager__card-icon" aria-hidden>
-                {iconSrc ? <img src={iconSrc} alt="" draggable={false} /> : moveIcon(m)}
-              </span>
-              <div className="manager__card-top">
-                <span className="manager__card-name">{m.name}</span>
-                <span className={`manager__card-type manager__card-type--${m.type}`}>
-                  {m.type}
-                </span>
+              <div className="manager__card-move-col manager__card-move-col--media">
+                <div className="manager__card-move-lead">
+                  <span className="manager__card-icon" aria-hidden>
+                    {iconSrc ? <img src={iconSrc} alt="" draggable={false} /> : moveIcon(m)}
+                  </span>
+                  <ul className="manager__card-stat-list" aria-label="Move stats">
+                    {getMoveStatLines(m).map((line, i) => (
+                      <li key={`${m.id}-stat-${i}`}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-              <div className="manager__card-stat">{formatMoveStat(m)}</div>
-              <div className="manager__card-desc">{m.description}</div>
-              <div className="manager__card-footer">
-                {on ? 'Already equipped' : canEquip ? 'Click to equip' : 'Slots full'}
+              <div className="manager__card-move-col manager__card-move-col--body">
+                <div className="manager__card-move-head">
+                  <div className="manager__card-top">
+                    <span className="manager__card-name">{m.name}</span>
+                    <span className={`manager__card-type manager__card-type--${m.type}`}>
+                      {m.type}
+                    </span>
+                  </div>
+                  <p className="manager__card-mana">Mana: {m.cost?.mana ?? 0}</p>
+                </div>
+                <div className="manager__card-desc">{m.description}</div>
+                {!on && (
+                  <div className="manager__card-footer">
+                    {canEquip ? 'Click to equip' : 'Slots full'}
+                  </div>
+                )}
               </div>
             </button>
           );

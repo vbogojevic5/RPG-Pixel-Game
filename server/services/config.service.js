@@ -9,6 +9,27 @@
  */
 import { prisma } from '../db.js';
 
+/** Ensure MAP_CONFIG from DB is a plain object the client can use (Prisma Json + legacy rows). */
+function normalizeMapConfig(raw) {
+  const empty = { version: 1, nodes: [], startNodeIds: [], bossNodeId: null };
+  if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) return empty;
+  const nodes = Array.isArray(raw.nodes)
+    ? raw.nodes.map((n) => ({
+        ...n,
+        children: Array.isArray(n.children) ? [...n.children] : [],
+      }))
+    : [];
+  return {
+    ...empty,
+    ...raw,
+    version: raw.version ?? 1,
+    size: raw.size ?? undefined,
+    startNodeIds: Array.isArray(raw.startNodeIds) ? [...raw.startNodeIds] : [],
+    bossNodeId: raw.bossNodeId ?? null,
+    nodes,
+  };
+}
+
 function normalizeMoveEffects(move) {
   const effects = [];
 
@@ -117,6 +138,10 @@ export async function loadConfig() {
   const items = constants.ITEM_DEFINITIONS ?? {};
   const dropTables = constants.DROP_TABLES ?? {};
   const shopConfig = constants.SHOP_CONFIG ?? { merchants: [] };
+  const mapConfig = normalizeMapConfig(constants.MAP_CONFIG);
+  constants.MAP_CONFIG = mapConfig;
+  const biomeConfig = constants.BIOME_CONFIG ?? {};
+  const arenaThemes = constants.ARENA_THEMES ?? {};
 
   const heroClasses = {};
   for (const row of heroRows) {
@@ -132,7 +157,19 @@ export async function loadConfig() {
 
   const hero = heroClasses.knight ?? heroClasses[heroRows[0].id];
 
-  return { hero, heroClasses, monsters, moves, items, dropTables, shopConfig, constants };
+  return {
+    hero,
+    heroClasses,
+    monsters,
+    moves,
+    items,
+    dropTables,
+    shopConfig,
+    mapConfig,
+    biomeConfig,
+    arenaThemes,
+    constants,
+  };
 }
 
 /** Just the moves dictionary (used by validateBattleState). */

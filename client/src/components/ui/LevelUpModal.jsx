@@ -1,10 +1,4 @@
-/**
- * LevelUpModal — inline badge/notification shown inside PostBattle when
- * the hero just leveled up.
- *
- * Shows the new level plus the stat gains the player received. Phase 3
- * could replace the fixed gains with a player-choice picker.
- */
+/** Compact level-up summary inside PostBattle. */
 export default function LevelUpModal({ newLevel, statGains }) {
   if (!newLevel || !statGains) return null;
 

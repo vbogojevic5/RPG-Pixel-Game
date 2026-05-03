@@ -33,6 +33,10 @@ const MOVE_NAME_ICONS = {
   arcaneSurge: '✦',
   manaDrain: '◇',
   hexShield: '⬡',
+  arrowShot: '➹',
+  huntersMark: '◎',
+  stoneFist: '✊',
+  graniteSkin: '▣',
 };
 
 const MOVE_NAME_ICON_SOURCES = {
@@ -56,15 +60,19 @@ const MOVE_NAME_ICON_SOURCES = {
   dirtyKick: `${GAME_ICONS_BASE}/lorc/boot-kick.svg`,
   frenzy: `${GAME_ICONS_BASE}/delapouite/enrage.svg`,
   headbutt: `${GAME_ICONS_BASE}/lorc/bull-horns.svg`,
-  firebolt: `${GAME_ICONS_BASE}/lorc/fire-spell-cast.svg`,
+  firebolt: `${GAME_ICONS_BASE}/delapouite/fire-spell-cast.svg`,
   arcaneSurge: `${GAME_ICONS_BASE}/lorc/magic-swirl.svg`,
   manaDrain: `${GAME_ICONS_BASE}/lorc/crystal-ball.svg`,
   hexShield: `${GAME_ICONS_BASE}/lorc/energy-shield.svg`,
+  arrowShot: `${GAME_ICONS_BASE}/lorc/high-shot.svg`,
+  huntersMark: `${GAME_ICONS_BASE}/lorc/target-arrows.svg`,
+  stoneFist: `${GAME_ICONS_BASE}/lorc/fist.svg`,
+  graniteSkin: `${GAME_ICONS_BASE}/lorc/stone-wall.svg`,
 };
 
 const STAT_LABELS = {
   health: 'HP',
-  mana: 'MP',
+  mana: 'MANA',
   attack: 'DMG',
   defense: 'DEF',
   magic: 'MAG',
@@ -74,27 +82,48 @@ export function moveIcon(move) {
   return MOVE_NAME_ICONS[move?.id] ?? MOVE_TYPE_ICONS[move?.type] ?? '?';
 }
 
+const MOVE_TYPE_ICON_SRC = {
+  physical: `${GAME_ICONS_BASE}/lorc/broadsword.svg`,
+  magic: `${GAME_ICONS_BASE}/lorc/magic-swirl.svg`,
+  heal: `${GAME_ICONS_BASE}/zeromancer/heart-plus.svg`,
+  buff: `${GAME_ICONS_BASE}/lorc/checked-shield.svg`,
+  debuff: `${GAME_ICONS_BASE}/lorc/fanged-skull.svg`,
+};
+
 export function moveIconSrc(move) {
-  return MOVE_NAME_ICON_SOURCES[move?.id] ?? null;
+  if (!move) return null;
+  return MOVE_NAME_ICON_SOURCES[move.id] ?? MOVE_TYPE_ICON_SRC[move.type] ?? null;
 }
 
 export function statLabel(stat) {
   return STAT_LABELS[stat] ?? stat;
 }
 
-export function formatMoveStat(move) {
-  if (!move) return null;
-  const costs = [];
-  if (move.cost?.mana) costs.push(`${move.cost.mana} MP`);
-  if (move.cost?.health) costs.push(`${move.cost.health} HP`);
-  const costText = costs.length > 0 ? ` · ${costs.join(' ')}` : '';
-  if (move.type === 'physical') return `DMG ${move.baseValue}`;
-  if (move.type === 'magic') return `MAG ${move.baseValue}${costText}`;
-  if (move.type === 'heal') return `HEAL ${move.baseValue}${costText}`;
-  if (move.effect?.stat) {
+/** One string per line: power/heal/buff line, then HP cost only (mana is shown under the name in cards). */
+export function getMoveStatLines(move) {
+  if (!move) return [];
+  const lines = [];
+  if (move.type === 'physical') {
+    lines.push(`DMG ${move.baseValue}`);
+  } else if (move.type === 'magic') {
+    lines.push(`MAG ${move.baseValue}`);
+  } else if (move.type === 'heal') {
+    lines.push(`HEAL ${move.baseValue}`);
+  } else if (move.effect?.stat) {
     const direction = move.effect.multiplier > 1 ? '+' : '-';
     const pct = Math.round(Math.abs(move.effect.multiplier - 1) * 100);
-    return `${statLabel(move.effect.stat)} ${direction}${pct}%${costText}`;
+    lines.push(`${statLabel(move.effect.stat)} ${direction}${pct}%`);
+  } else if (move.baseValue > 0) {
+    lines.push(`PWR ${move.baseValue}`);
+  } else {
+    lines.push('UTILITY');
   }
-  return move.baseValue > 0 ? `PWR ${move.baseValue}${costText}` : `UTILITY${costText}`;
+  if (move.cost?.health) lines.push(`${move.cost.health} HP`);
+  return lines;
+}
+
+export function formatMoveStat(move) {
+  const lines = getMoveStatLines(move);
+  if (lines.length === 0) return null;
+  return lines.join(' · ');
 }

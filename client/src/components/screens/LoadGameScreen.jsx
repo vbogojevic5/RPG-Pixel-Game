@@ -1,10 +1,6 @@
 import { useMemo } from 'react';
 
-/**
- * LoadGameScreen — pick an existing save to resume, or delete one.
- * Only reachable when the player is authenticated and has at least
- * one save.
- */
+/** List server saves, load or delete. */
 export default function LoadGameScreen({
   saves,
   loading,
@@ -27,9 +23,6 @@ export default function LoadGameScreen({
       <div className="load-card">
         <div className="load-card__header">
           <h2 className="load-card__title">Continue a Run</h2>
-          <button type="button" className="btn btn--ghost" onClick={onBack}>
-            Back
-          </button>
         </div>
 
         {loading && <p className="load-card__note">Loading your saves…</p>}
@@ -89,6 +82,12 @@ export default function LoadGameScreen({
             );
           })}
         </ul>
+
+        <div className="load-card__footer">
+          <button type="button" className="btn btn--ghost" onClick={onBack}>
+            Back
+          </button>
+        </div>
       </div>
     </div>
   );

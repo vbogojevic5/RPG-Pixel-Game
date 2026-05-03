@@ -1,9 +1,4 @@
-/**
- * Monster AI.
- *
- * Phase 4: weighted tactical choice. Monsters still have randomness, but
- * their weights now react to HP, buffs, debuffs, statuses, and monster role.
- */
+/** Weighted random monster move from `availableMoves` using tactical heuristics. */
 export function pickMonsterMove(state, movesById = {}) {
   const pool = Array.isArray(state.availableMoves) ? state.availableMoves : [];
   if (pool.length === 0) {

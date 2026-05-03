@@ -1,130 +1,251 @@
 /* ------------------------------------------------------------------ */
-/* Journey Map — fixed illustrated map with 5 stops on a winding path. */
-/* No keyboard, no walking. Click a node to fight its monster.         */
+/* Run shell — shared by Map + Champion Setup (sidebar + main).       */
+/* Journey map nodes/path keep journey__* classes below.               */
 /* ------------------------------------------------------------------ */
 
-.journey {
-  gap: 18px;
-  max-width: 1280px;
-  min-height: 100vh;
-  justify-content: center;
-}
-
-/* ---------- Top bar ---------- */
-.journey__topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 16px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-.journey__hero-panel {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex: 1;
-  min-width: 0;
-}
-
-.journey__hero-portrait {
-  width: 48px;
-  height: 48px;
-  padding: 2px;
-  background: var(--bg-deep);
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 0 8px var(--accent-glow);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.journey__hero-info {
-  flex: 1;
-  min-width: 0;
+.run-layout {
+  gap: 12px;
+  width: 100%;
+  max-width: var(--game-max-width);
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-
-.journey__hero-name {
-  font-family: var(--font-display);
-  color: var(--text);
-  font-size: 1.05rem;
-  line-height: 1.1;
-}
-
-.journey__hero-level {
-  color: var(--accent);
-  font-size: 0.8rem;
-  margin-left: 6px;
-  letter-spacing: 0.04em;
-}
-
-.journey__hero-bars {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.journey__bar {
-  position: relative;
-  flex: 1 1 160px;
-  max-width: 220px;
-  height: 14px;
-  background: #15101c;
-  border: 1px solid var(--border);
-  border-radius: 2px;
   overflow: hidden;
 }
 
-.journey__bar-fill {
-  position: absolute;
-  inset: 0 auto 0 0;
+.screen.run-layout {
+  width: 100%;
+  max-width: var(--game-max-width);
   height: 100%;
-  transition: width 180ms ease;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  padding: 20px 24px 20px;
+  box-sizing: border-box;
 }
 
-.journey__bar-fill--xp { background: linear-gradient(180deg, #c8a24a 0%, #7a5f2a 100%); }
+.screen.manager.configure.run-layout,
+.screen.manager.inventory.run-layout {
+  max-width: var(--game-max-width);
+  width: 100%;
+}
 
-.journey__bar-label {
-  position: absolute;
-  inset: 0;
+/* ---------- Centered page title (above sidebar + main) ---------- */
+.screen-page-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  color: var(--accent-soft);
+  text-shadow: 0 0 12px var(--accent-glow);
+}
+
+/* Match .class-select__header — framed title bar */
+.run-layout__page-heading {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
-  color: #fff;
-  text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
-  pointer-events: none;
+  text-align: center;
+  width: 100%;
+  padding: 8px;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(26, 22, 36, 0.9);
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
-.journey__actions {
+.run-layout__title {
+  margin: 0 auto;
+  text-align: center;
+  max-width: 100%;
+  width: 100%;
+}
+
+/* Match .class-select__title rhythm */
+.run-layout__page-heading .screen-page-title {
+  margin: 0.15em 0 0.35em;
+  width: 100%;
+}
+
+.run-layout__page-heading .inventory__page-eyebrow {
+  margin-bottom: 6px;
+}
+
+.run-layout__page-heading .inventory__page-eyebrow + .screen-page-title {
+  margin-top: 0;
+}
+
+/* ---------- Sidebar: champion stats + vertical actions ---------- */
+.run-layout__sidebar {
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 280px;
+  flex-shrink: 0;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.run-layout__sidebar .champion-stats {
+  width: 100%;
+}
+
+.run-layout__sidebar-actions {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
-/* ---------- Map stage ---------- */
-.journey__stage {
+.run-layout__sidebar-actions .btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+}
+
+.run-layout__body {
+  display: flex;
+  flex-direction: row;
+  gap: 18px;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* ---------- Main column: map canvas ---------- */
+.run-layout__main--map {
+  position: relative;
+  flex: 1;
   padding: 22px;
   background: var(--bg-deep);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 0;
+  width: 100%;
+}
+
+/* ---------- Main column: setup / inventory panel ---------- */
+.run-layout__main--panel {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 22px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* Fills the panel under tabs; only inner .run-layout__panel-scroll scrolls */
+.run-layout__panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  align-items: stretch;
+}
+
+.run-layout__panel-body .manager__loadout,
+.run-layout__panel-body .manager__section-title,
+.run-layout__panel-body .inventory__equipped,
+.run-layout__panel-body .manager__subtitle.manager__inventory-hint {
+  flex-shrink: 0;
+}
+
+.run-layout__panel-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200, 162, 74, 0.85) rgba(14, 11, 20, 0.4);
+}
+
+.run-layout__panel-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.run-layout__panel-scroll::-webkit-scrollbar-track {
+  background: rgba(14, 11, 20, 0.35);
+  border-radius: 999px;
+  margin: 4px 0;
+}
+
+.run-layout__panel-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #f2cf72 0%, #b8923d 55%, #8a6a1e 100%);
+  border-radius: 999px;
+  border: 1px solid rgba(200, 162, 74, 0.45);
+  box-shadow: 0 0 6px rgba(200, 162, 74, 0.25);
+}
+
+.run-layout__panel-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #fff0b8 0%, #d4a84a 55%, #a67a28 100%);
+}
+
+/* Remove legacy stepper arrows (IE/Edge legacy; WebKit often has none) */
+.run-layout__panel-scroll::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.run-layout__panel-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Standalone inventory: stack hint + gear, scroll carried list only */
+.inventory .run-layout__panel-body--inventory {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.inventory .inventory__equipped {
+  flex-shrink: 0;
+}
+
+.inventory .manager__section-title,
+.inventory .manager__inventory-hint {
+  flex-shrink: 0;
+}
+
+.journey__viewport {
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  flex: 1 1 0;
+  min-height: 280px;
+  min-width: 0;
 }
 
 .journey__map {
   position: relative;
-  width: 100%;
-  min-height: 560px;
+  height: 100%;
   border-radius: var(--radius-sm);
   overflow: hidden;
+  will-change: transform;
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  isolation: isolate;
   /* Parchment-on-stone backdrop, with warm vignette & subtle grain */
   background:
     radial-gradient(ellipse at 10% 80%, rgba(67, 119, 58, 0.34), transparent 26%),
@@ -136,11 +257,12 @@
   box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.8), 0 4px 20px rgba(0, 0, 0, 0.6);
 }
 
-/* A faint "worn paper" texture on top using repeating gradients */
+/* Texture layer — keep below path/nodes (those use z-index); no multiply on top of whole map */
 .journey__map::before {
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 0;
   background:
     radial-gradient(ellipse at 9% 70%, rgba(55, 102, 41, 0.52) 0 10%, transparent 22%),
     radial-gradient(ellipse at 27% 28%, rgba(45, 39, 60, 0.58) 0 12%, transparent 24%),
@@ -148,8 +270,8 @@
     radial-gradient(ellipse at 70% 26%, rgba(44, 78, 39, 0.52) 0 12%, transparent 24%),
     radial-gradient(ellipse at 91% 60%, rgba(105, 46, 34, 0.58) 0 12%, transparent 24%),
     repeating-linear-gradient(105deg, rgba(12, 38, 20, 0.32) 0 12px, transparent 12px 30px),
-    repeating-linear-gradient(45deg, rgba(255, 215, 140, 0.02) 0 2px, transparent 2px 8px),
-    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.06) 0 2px, transparent 2px 10px);
+    repeating-linear-gradient(45deg, rgba(255, 215, 140, 0.04) 0 2px, transparent 2px 8px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.05) 0 2px, transparent 2px 10px);
   pointer-events: none;
 }
 
@@ -157,11 +279,11 @@
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 0;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(5, 16, 10, 0.78) 0%, transparent 18%),
-    radial-gradient(ellipse at 50% 105%, rgba(0, 0, 0, 0.52), transparent 44%);
-  mix-blend-mode: multiply;
+    linear-gradient(180deg, rgba(5, 16, 10, 0.18) 0%, transparent 20%),
+    radial-gradient(ellipse at 50% 105%, rgba(0, 0, 0, 0.14), transparent 46%);
 }
 
 /* ---------- Path (SVG overlay) ---------- */
@@ -172,6 +294,7 @@
   height: 100%;
   overflow: visible;
   z-index: 1;
+  pointer-events: none;
 }
 
 .journey__path-line {
@@ -198,6 +321,72 @@
   filter: drop-shadow(0 0 4px var(--accent-glow));
 }
 
+/* ---------- Map paging — large chevrons, no circle plate ---------- */
+.journey__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 6;
+  width: auto;
+  height: auto;
+  min-width: unset;
+  padding: 4px;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  color: #e8c97a;
+  background: transparent;
+  box-shadow: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.75)) drop-shadow(0 0 10px rgba(200, 162, 74, 0.35));
+  transition: color 160ms ease, filter 160ms ease, transform 160ms ease, opacity 160ms ease;
+}
+
+.journey__nav-icon {
+  display: block;
+  margin-left: 3px;
+}
+
+.journey__nav--prev .journey__nav-icon {
+  margin-left: -3px;
+}
+
+.journey__nav:hover:not(:disabled) {
+  color: #fff6d8;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 14px rgba(242, 207, 114, 0.45));
+}
+
+.journey__nav:active:not(:disabled) {
+  transform: translateY(calc(-50% + 1px));
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8));
+}
+
+.journey__nav:focus-visible {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+.journey__nav:disabled {
+  cursor: not-allowed;
+  color: #5c5a58;
+  filter: grayscale(0.9) opacity(0.4);
+}
+
+.journey__nav:disabled .journey__nav-icon {
+  opacity: 1;
+}
+
+.journey__nav--prev {
+  left: 12px;
+}
+
+.journey__nav--next {
+  right: 12px;
+}
+
 /* ---------- Nodes ---------- */
 .journey__node {
   position: absolute;
@@ -212,7 +401,7 @@
   color: var(--text);
   cursor: pointer;
   font-family: var(--font-body);
-  z-index: 3;
+  z-index: 2;
 }
 .journey__node:focus-visible {
   outline: 2px solid var(--accent);
@@ -242,6 +431,60 @@
   z-index: -1;
   filter: blur(2px);
   opacity: 0.7;
+}
+
+.journey__node--biome-forest .journey__node-pin::before {
+  background: radial-gradient(circle, rgba(69, 121, 55, 0.5), transparent 68%);
+}
+
+.journey__node--biome-swamp .journey__node-pin::before {
+  background:
+    radial-gradient(circle, rgba(79, 127, 114, 0.52), transparent 66%),
+    repeating-linear-gradient(45deg, rgba(220, 240, 220, 0.12) 0 1px, transparent 1px 9px);
+}
+
+.journey__node--biome-ruins .journey__node-pin::before {
+  background: radial-gradient(circle, rgba(166, 106, 52, 0.5), transparent 68%);
+}
+
+.journey__node--biome-mountains .journey__node-pin::before {
+  background: radial-gradient(circle, rgba(143, 138, 122, 0.56), transparent 68%);
+}
+
+.journey__node--biome-coast .journey__node-pin::before {
+  background: radial-gradient(circle, rgba(94, 143, 180, 0.52), transparent 68%);
+}
+
+.journey__node--elite .journey__node-pin,
+.journey__node--boss .journey__node-pin {
+  border-color: var(--accent);
+}
+
+.journey__node--boss .journey__node-pin {
+  box-shadow: 0 0 18px rgba(192, 56, 72, 0.5), 0 4px 10px rgba(0, 0, 0, 0.6);
+}
+
+.journey__node--shop .journey__node-pin {
+  border-color: #c8a24a;
+  background:
+    radial-gradient(circle at center, rgba(67, 48, 18, 0.95), rgba(26, 20, 14, 0.35) 64%, transparent 76%);
+}
+
+.journey__shop-icon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #c8a24a, #5d421b);
+  color: #1b1208;
+  font-size: 2rem;
+  box-shadow: inset 0 0 0 2px rgba(255, 245, 190, 0.18);
+}
+
+.journey__node-biome {
+  color: var(--text-muted);
+  font-size: 0.68rem;
 }
 
 .journey__node--goblin_warrior .journey__node-pin::before {
@@ -285,6 +528,20 @@
 
 .journey__node.is-locked { cursor: not-allowed; }
 
+.journey__node--config-gap .journey__node-pin {
+  box-shadow: 0 0 0 2px rgba(225, 92, 111, 0.75);
+}
+
+.journey__node-gap-icon {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--accent-soft, #f0ce7a);
+}
+
 .journey__node.is-locked .journey__node-pin {
   filter: grayscale(1) brightness(0.6);
   opacity: 0.55;
@@ -309,17 +566,21 @@
 }
 
 .journey__node-badge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
+  position: relative;
+  top: auto;
+  right: auto;
+  margin: 0 0 6px;
+  align-self: center;
   font-family: var(--font-display);
-  font-size: 0.7rem;
-  line-height: 1;
-  padding: 2px 5px;
+  font-size: 0.68rem;
+  line-height: 1.15;
+  padding: 3px 8px;
   background: var(--bg-deep);
   color: var(--accent-soft);
   border: 1px solid var(--accent);
   border-radius: 3px;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .journey__node.is-defeated .journey__node-badge {
@@ -330,15 +591,16 @@
 .journey__node-caption {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  justify-content: center;
   text-align: center;
   background: rgba(14, 11, 20, 0.85);
   border: 1px solid var(--border);
   border-radius: 3px;
-  padding: 3px 8px;
-  min-width: 90px;
-  max-width: 140px;
+  padding: 4px 10px;
+  min-width: 72px;
+  max-width: 160px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  margin-top: 4px;
 }
 
 .journey__node-name {
@@ -362,9 +624,9 @@
   transform: translateX(-50%) translateY(8px);
   min-width: 138px;
   padding: 10px 12px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
   background:
     radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.12), transparent 34%),
     rgba(14, 11, 20, 0.95);
@@ -381,17 +643,11 @@
   z-index: 9;
 }
 
-.journey__stat-cloud::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: -7px;
-  width: 14px;
-  height: 14px;
-  background: rgba(14, 11, 20, 0.95);
-  border-right: 1px solid var(--accent);
-  border-bottom: 1px solid var(--accent);
-  transform: translateX(-50%) rotate(45deg);
+/* Upper map pins: open downward so the cloud stays inside the viewport */
+.journey__stat-cloud--below {
+  bottom: auto;
+  top: calc(100% + 8px);
+  transform: translateX(-50%) translateY(-8px);
 }
 
 .journey__node:hover .journey__stat-cloud,
@@ -400,12 +656,18 @@
   transform: translateX(-50%) translateY(0);
 }
 
+.journey__node:hover .journey__stat-cloud--below,
+.journey__node:focus-visible .journey__stat-cloud--below {
+  transform: translateX(-50%) translateY(0);
+}
+
 .journey__stat-cloud-title {
-  grid-column: 1 / -1;
   font-family: var(--font-display);
   color: var(--accent-soft);
   font-size: 0.88rem;
   margin-bottom: 2px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(200, 162, 74, 0.25);
 }
 
 /* ---------- Footer ---------- */
@@ -414,6 +676,8 @@
   justify-content: center;
   align-items: center;
   min-height: 32px;
+  flex-shrink: 0;
+  margin-top: 10px;
 }
 
 .journey__hint {
@@ -426,13 +690,21 @@
 
 /* ---------- Mobile ---------- */
 @media (max-width: 720px) {
-  .journey__topbar {
+  .run-layout__body {
     flex-direction: column;
-    align-items: stretch;
+    flex: 1 1 auto;
+    min-height: 0;
   }
-  .journey__hero-panel { flex-direction: row; }
-  .journey__actions { justify-content: flex-end; }
-  .journey__map { min-height: 420px; }
+  .run-layout__sidebar {
+    width: 100%;
+    flex-shrink: 0;
+  }
+  .run-layout__main--map,
+  .run-layout__main--panel {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .journey__viewport { min-height: 220px; }
   .journey__node-pin { width: 62px; height: 62px; }
   .journey__node-caption { font-size: 0.75rem; min-width: 64px; }
 }

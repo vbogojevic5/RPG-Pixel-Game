@@ -112,6 +112,8 @@ model GameSave {
   defeatedMonsterIds String[]
   /// { battlesFought, battlesWon, battlesLost }
   runStats           Json
+  /// `${merchantId}:${itemId}` keys for one-time shop slots purchased this run.
+  shopPurchasedSlots String[] @default([])
   /// If the save was mid-screen transition we could also remember screen name here.
   lastScreen         String?
   createdAt          DateTime @default(now())

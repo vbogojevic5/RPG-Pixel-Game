@@ -10,6 +10,7 @@ function serialize(save) {
     heroState: save.heroState,
     defeatedMonsterIds: save.defeatedMonsterIds,
     runStats: save.runStats,
+    shopPurchasedSlots: save.shopPurchasedSlots ?? [],
     lastScreen: save.lastScreen,
     createdAt: save.createdAt,
     updatedAt: save.updatedAt,
@@ -17,7 +18,7 @@ function serialize(save) {
 }
 
 function validatePayload(body) {
-  const { name, heroState, defeatedMonsterIds, runStats, lastScreen } = body ?? {};
+  const { name, heroState, defeatedMonsterIds, runStats, lastScreen, shopPurchasedSlots } = body ?? {};
   if (typeof name !== 'string' || name.trim().length === 0) {
     const err = new Error('Save name is required.');
     err.status = 400;
@@ -43,11 +44,17 @@ function validatePayload(body) {
     err.status = 400;
     throw err;
   }
+  if (shopPurchasedSlots != null && !Array.isArray(shopPurchasedSlots)) {
+    const err = new Error('shopPurchasedSlots must be an array.');
+    err.status = 400;
+    throw err;
+  }
   return {
     name: name.trim(),
     heroState,
     defeatedMonsterIds,
     runStats,
+    shopPurchasedSlots: Array.isArray(shopPurchasedSlots) ? shopPurchasedSlots : [],
     lastScreen: typeof lastScreen === 'string' ? lastScreen : null,
   };
 }

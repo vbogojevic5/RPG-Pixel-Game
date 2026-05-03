@@ -2,14 +2,7 @@ import Sprite from '../ui/Sprite.jsx';
 import BattleLog from '../ui/BattleLog.jsx';
 import { formatItemEffect, itemIcon, itemIconSrc } from '../../constants/itemPresentation.js';
 
-/**
- * PostBattle — shows the outcome of a fight and the rewards from it.
- *
- * Phase 3 changes:
- *   - Level-ups are no longer auto-applied; the stat-choice modal owned
- *     by App.jsx runs first. While `pendingLevelUps > 0`, the Continue
- *     button is disabled and the hint nudges the player to pick a boost.
- */
+/** After battle: outcome, drops, XP; Continue gated until level-up picks are done. */
 export default function PostBattle({
   outcome,
   monster,
@@ -43,7 +36,7 @@ export default function PostBattle({
 
         {isWin && summary?.coinsGained > 0 && (
           <div className="post-battle__coins">
-            +{summary.coinsGained} Crowns
+            +{summary.coinsGained} Coins
           </div>
         )}
 
@@ -61,13 +54,6 @@ export default function PostBattle({
               <div className="post-battle__learned-name">{droppedItem.name}</div>
               <div className="post-battle__learned-desc">{formatItemEffect(droppedItem)}</div>
             </div>
-          </div>
-        )}
-
-        {summary?.leveledUp && pendingLevelUps === 0 && (
-          <div className="levelup">
-            <div className="levelup__header">Level Up!</div>
-            <div className="levelup__level">Stat boosts applied.</div>
           </div>
         )}
 
@@ -106,6 +92,12 @@ export default function PostBattle({
               </div>
             )}
           </>
+        )}
+
+        {isWin && battleLog.length > 0 && (
+          <div className="post-battle__log-action">
+            <BattleLog entries={battleLog} />
+          </div>
         )}
 
         <button

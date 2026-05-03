@@ -77,6 +77,9 @@ export default function useAudio() {
     const next = new Audio(track.src);
     next.loop = track.loop !== false;
     next.preload = 'auto';
+    // Default element volume is 1; playback can begin before play()'s promise runs.
+    // Start at 0 so muted users and fade-in never flash full volume for a frame.
+    next.volume = 0;
     activeMusicRef.current = next;
     activeContextRef.current = context;
 

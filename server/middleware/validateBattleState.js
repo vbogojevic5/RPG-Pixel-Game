@@ -1,13 +1,6 @@
 import { loadMonsterMoveIds } from '../services/config.service.js';
 
-/**
- * Decodes the `state` query param (base64-encoded JSON), validates its
- * shape against the DB, and attaches the parsed object to
- * `req.battleState`.
- *
- * GET with a base64 query param (per the spec) keeps the endpoint
- * idempotent-looking and trivial to test from a browser.
- */
+/** Decode `?state=` (base64 JSON), validate moveset vs DB, set `req.battleState`. */
 export async function validateBattleState(req, res, next) {
   const raw = req.query.state;
   if (typeof raw !== 'string' || raw.length === 0) {

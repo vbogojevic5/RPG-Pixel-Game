@@ -1,20 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 
-/**
- * Tracks hero state across a full run (Phase 2).
- *
- * Fields owned by this hook:
- *   - hero               Current hero snapshot (live HP, stats, equipped & known moves)
- *   - defeatedMonsterIds List of monsters already beaten in this run
- *   - runStats           Aggregate stats for the Victory screen (battles fought, won, lost)
- *
- * Progression rules live here so screens and battle logic can stay dumb:
- *   - onBattleEnd(payload) — single entry point after a fight resolves.
- *     Applies XP, HP survival, defeat flag, learned move, and level-ups.
- *   - Level up uses constants pulled from the server config (single
- *     source of truth so the Game Designer can retune without a client
- *     rebuild).
- */
+/** Run-scoped hero: XP, level-ups, moves, items, map progress, `applyBattleOutcome`. */
 
 function selectedHeroConfig(config, heroClassId) {
   return config?.heroClasses?.[heroClassId] ?? config?.hero ?? null;
@@ -210,7 +196,15 @@ export default function useGameState() {
   const [items, setItems] = useState(null);
   const [dropTables, setDropTables] = useState(null);
   const [defeatedMonsterIds, setDefeatedMonsterIds] = useState([]);
+  const [mapProgress, setMapProgress] = useState({
+    clearedNodeIds: [],
+    visitedNodeIds: [],
+    bossDefeated: false,
+    lastMapPageIndex: 0,
+  });
   const [runStats, setRunStats] = useState({ battlesFought: 0, battlesWon: 0, battlesLost: 0 });
+  /** `${merchantId}:${itemId}` keys for shop slots bought this run (persists in saves / session). */
+  const [shopPurchasedSlots, setShopPurchasedSlots] = useState([]);
 
   const startRun = useCallback((config, heroClassId) => {
     setHero(buildFreshHero(config, heroClassId));
@@ -218,7 +212,9 @@ export default function useGameState() {
     setItems(config.items ?? null);
     setDropTables(config.dropTables ?? null);
     setDefeatedMonsterIds([]);
+    setMapProgress({ clearedNodeIds: [], visitedNodeIds: [], bossDefeated: false, lastMapPageIndex: 0 });
     setRunStats({ battlesFought: 0, battlesWon: 0, battlesLost: 0 });
+    setShopPurchasedSlots([]);
   }, []);
 
   /**
@@ -258,6 +254,7 @@ export default function useGameState() {
       inventory: Array.isArray(incoming.inventory) ? [...incoming.inventory] : [],
       equippedItems,
       visitedMerchantIds: Array.isArray(incoming.visitedMerchantIds) ? [...incoming.visitedMerchantIds] : [],
+      mapProgress: incoming.mapProgress ?? save.runStats?.mapProgress ?? null,
       levelUpGrowth: incoming.levelUpGrowth ?? classConfig?.levelUpGrowth ?? null,
       xp: Number.isFinite(incoming.xp) ? incoming.xp : 0,
       level: Number.isFinite(incoming.level) ? incoming.level : 1,
@@ -266,7 +263,28 @@ export default function useGameState() {
     setItems(config.items ?? null);
     setDropTables(config.dropTables ?? null);
     setDefeatedMonsterIds(Array.isArray(save.defeatedMonsterIds) ? [...save.defeatedMonsterIds] : []);
+    const loadedPage =
+      Number.isFinite(incoming.mapProgress?.lastMapPageIndex) &&
+      incoming.mapProgress.lastMapPageIndex >= 0
+        ? Math.floor(incoming.mapProgress.lastMapPageIndex)
+        : Number.isFinite(save.runStats?.mapProgress?.lastMapPageIndex) &&
+            save.runStats.mapProgress.lastMapPageIndex >= 0
+          ? Math.floor(save.runStats.mapProgress.lastMapPageIndex)
+          : 0;
+    setMapProgress({
+      clearedNodeIds: Array.isArray(incoming.mapProgress?.clearedNodeIds)
+        ? [...incoming.mapProgress.clearedNodeIds]
+        : [],
+      visitedNodeIds: Array.isArray(incoming.mapProgress?.visitedNodeIds)
+        ? [...incoming.mapProgress.visitedNodeIds]
+        : [],
+      bossDefeated: Boolean(incoming.mapProgress?.bossDefeated),
+      lastMapPageIndex: loadedPage,
+    });
     setRunStats(save.runStats ?? { battlesFought: 0, battlesWon: 0, battlesLost: 0 });
+    setShopPurchasedSlots(
+      Array.isArray(save.shopPurchasedSlots) ? [...save.shopPurchasedSlots] : []
+    );
   }, []);
 
   const endRun = useCallback(() => {
@@ -275,7 +293,9 @@ export default function useGameState() {
     setItems(null);
     setDropTables(null);
     setDefeatedMonsterIds([]);
+    setMapProgress({ clearedNodeIds: [], visitedNodeIds: [], bossDefeated: false, lastMapPageIndex: 0 });
     setRunStats({ battlesFought: 0, battlesWon: 0, battlesLost: 0 });
+    setShopPurchasedSlots([]);
   }, []);
 
   /** Snapshot shaped for POST /saves and PUT /saves/:id. */
@@ -299,16 +319,18 @@ export default function useGameState() {
           inventory: hero.inventory ?? [],
           equippedItems: hero.equippedItems ?? emptyEquippedItems(constants),
           visitedMerchantIds: hero.visitedMerchantIds ?? [],
+          mapProgress,
           levelUpGrowth: hero.levelUpGrowth ?? null,
           xp: hero.xp,
           level: hero.level,
         },
         defeatedMonsterIds,
         runStats,
+        shopPurchasedSlots: [...shopPurchasedSlots],
         lastScreen: null,
       };
     },
-    [hero, constants, defeatedMonsterIds, runStats]
+    [hero, constants, defeatedMonsterIds, mapProgress, runStats, shopPurchasedSlots]
   );
 
   const fullHealHero = useCallback(() => {
@@ -329,7 +351,7 @@ export default function useGameState() {
     return result;
   }, [constants, items]);
 
-  const buyItem = useCallback((itemId, price) => {
+  const buyItem = useCallback((itemId, price, merchantId) => {
     let result = { ok: false, reason: 'unknown' };
     setHero((h) => {
       if (!h) return h;
@@ -345,8 +367,41 @@ export default function useGameState() {
       result = { ok: true };
       return { ...h, coins: h.coins - price, inventory: added.inventory };
     });
+    if (result.ok && merchantId != null && merchantId !== '') {
+      const key = `${merchantId}:${itemId}`;
+      setShopPurchasedSlots((prev) => (prev.includes(key) ? prev : [...prev, key]));
+    }
     return result;
   }, [constants, items]);
+
+  const setJourneyMapPageIndex = useCallback((index) => {
+    const idx = Math.max(0, Math.floor(Number(index)) || 0);
+    setMapProgress((p) => ({ ...p, lastMapPageIndex: idx }));
+  }, []);
+
+  const markMapNodeVisited = useCallback((nodeId) => {
+    if (!nodeId) return;
+    setMapProgress((progress) => ({
+      ...progress,
+      visitedNodeIds: progress.visitedNodeIds.includes(nodeId)
+        ? progress.visitedNodeIds
+        : [...progress.visitedNodeIds, nodeId],
+    }));
+  }, []);
+
+  const clearMapNode = useCallback((nodeId, { boss = false } = {}) => {
+    if (!nodeId) return;
+    setMapProgress((progress) => ({
+      ...progress,
+      clearedNodeIds: progress.clearedNodeIds.includes(nodeId)
+        ? progress.clearedNodeIds
+        : [...progress.clearedNodeIds, nodeId],
+      visitedNodeIds: progress.visitedNodeIds.includes(nodeId)
+        ? progress.visitedNodeIds
+        : [...progress.visitedNodeIds, nodeId],
+      bossDefeated: progress.bossDefeated || boss,
+    }));
+  }, []);
 
   const equipItem = useCallback((itemId) => {
     let result = { ok: false, reason: 'unknown' };
@@ -489,8 +544,6 @@ export default function useGameState() {
         }
       }
 
-      // --- Level up: do NOT auto-apply gains. Queue them so the player
-      //     can pick a stat boost per level-up (Phase 3 feature). ---
       const thresholds = constants?.XP_LEVEL_THRESHOLDS;
       const pendingLevelUps = countLevelUps(next.xp, next.level, thresholds);
       if (pendingLevelUps > 0) {
@@ -500,7 +553,6 @@ export default function useGameState() {
         summary.pendingLevelUps = 0;
       }
 
-      // --- Learn a move on victory (if it's not already known) ---
       if (
         payload.outcome === 'victory' &&
         Array.isArray(payload.monsterMoves) &&
@@ -531,11 +583,14 @@ export default function useGameState() {
         setDefeatedMonsterIds((list) =>
           list.includes(payload.monsterId) ? list : [...list, payload.monsterId]
         );
+        if (payload.mapNodeId) {
+          clearMapNode(payload.mapNodeId, { boss: payload.nodeType === 'boss' });
+        }
       }
 
       return summary;
     },
-    [hero, constants, dropTables, items]
+    [hero, constants, dropTables, items, clearMapNode]
   );
 
   const xpThreshold = useMemo(() => {
@@ -562,6 +617,8 @@ export default function useGameState() {
   return {
     hero,
     defeatedMonsterIds,
+    mapProgress,
+    setJourneyMapPageIndex,
     runStats,
     xpThreshold,
     startRun,
@@ -573,6 +630,9 @@ export default function useGameState() {
     applyLevelUpChoice,
     addItemToInventory,
     buyItem,
+    shopPurchasedSlots,
+    markMapNodeVisited,
+    clearMapNode,
     equipItem,
     unequipItem,
     snapshotForSave,

@@ -1,15 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-/**
- * BattleLog — scrollable log panel pinned to the bottom-right of the
- * arena. Replaces the inline last-4 in Phase 2.
- *
- * Auto-scrolls to the bottom on new entries. Clickable header collapses
- * to a minimal pill so the log can be hidden when the player wants to
- * focus on the fight.
- */
-export default function BattleLog({ entries, contained = false }) {
+/** Collapsible battle log; optional portal overlay when not `contained`. */
+export default function BattleLog({
+  entries,
+  contained = false,
+  triggerClassName = 'arena__control-btn battle-log__button',
+}) {
+  const lines = Array.isArray(entries) ? entries : [];
   const [open, setOpen] = useState(false);
   const listRef = useRef(null);
 
@@ -17,7 +15,7 @@ export default function BattleLog({ entries, contained = false }) {
     if (!open) return;
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [entries, open]);
+  }, [lines, open]);
 
   const classify = (line) => {
     const lower = line.toLowerCase();
@@ -40,8 +38,9 @@ export default function BattleLog({ entries, contained = false }) {
           type="button"
           className="battle-log__toggle"
           onClick={() => setOpen(false)}
+          aria-label="Close battle log"
         >
-          hide
+          <span className="battle-log__close-icon" aria-hidden>×</span>
         </button>
       </div>
       <ul className="battle-log__list" ref={listRef}>
@@ -65,9 +64,11 @@ export default function BattleLog({ entries, contained = false }) {
       <div className={`battle-log ${open ? 'is-open' : ''}`}>
       <button
         type="button"
-        className="arena__control-btn battle-log__button"
+        className={triggerClassName}
         onClick={() => setOpen((value) => !value)}
+        data-sfx="buttonClick"
       >
+        <i className="fa-solid fa-scroll btn__fa" aria-hidden />
         Battle Log
       </button>
       </div>

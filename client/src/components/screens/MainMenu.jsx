@@ -1,10 +1,4 @@
-/**
- * MainMenu — the game's landing screen (Phase 3).
- *
- * Always reached via an authenticated player. Shows who's logged in,
- * enables Load Game when the player has at least one save, and offers
- * a Log out button.
- */
+/** Authenticated hub: start run, load save, log out. */
 export default function MainMenu({
   player,
   onStartGame,
@@ -19,7 +13,7 @@ export default function MainMenu({
       <div className="main-menu__card">
         <h1 className="main-menu__title">Knight's Gauntlet</h1>
         <p className="main-menu__subtitle">
-          Face five monsters. Learn their moves. Survive the gauntlet.
+          Face monsters. Learn their moves. Survive the gauntlet.
         </p>
 
         <p className="main-menu__hello">
@@ -33,6 +27,7 @@ export default function MainMenu({
             onClick={onStartGame}
             disabled={loading}
           >
+            <i className="fa-solid fa-play btn__fa" aria-hidden />
             {loading ? 'Loading run…' : 'Start New Run'}
           </button>
           <button
@@ -42,9 +37,11 @@ export default function MainMenu({
             disabled={saveCount === 0}
             title={saveCount === 0 ? 'No saved runs yet' : undefined}
           >
+            <i className="fa-solid fa-folder-open btn__fa" aria-hidden />
             Load Game{saveCount > 0 ? ` (${saveCount})` : ''}
           </button>
           <button type="button" className="btn btn--ghost" onClick={onLogout}>
+            <i className="fa-solid fa-right-from-bracket btn__fa" aria-hidden />
             Log out
           </button>
         </div>

@@ -3,6 +3,7 @@
 /* ------------------------------------------------------------------ */
 
 :root {
+  --game-max-width: 1280px;
   --bg-deep: #0e0b14;
   --bg-surface: #1a1624;
   --bg-surface-alt: #221c30;
@@ -75,10 +76,43 @@ p { margin: 0 0 0.8em 0; color: var(--text-muted); }
   justify-content: center;
 }
 
+/* Map + Champion Setup + Run Inventory: one viewport height, no document scroll */
+.app--run-shell {
+  display: grid;
+  grid-template: 1fr / 1fr;
+  height: 100vh;
+  max-height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  align-items: stretch;
+  justify-items: stretch;
+}
+
+.app--run-shell > .screen.run-layout {
+  grid-area: 1 / 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: var(--game-max-width);
+  align-self: stretch;
+  justify-self: center;
+}
+
+.app--run-shell > .audio-controls {
+  grid-area: 1 / 1;
+  align-self: end;
+  justify-self: end;
+  margin: 18px;
+  z-index: 120;
+}
+
 .screen {
   width: 100%;
-  max-width: 960px;
+  max-width: var(--game-max-width);
   padding: 32px 28px 48px;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }

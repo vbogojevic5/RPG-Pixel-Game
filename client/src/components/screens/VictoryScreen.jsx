@@ -1,17 +1,7 @@
 import Sprite from '../ui/Sprite.jsx';
 import BattleLog from '../ui/BattleLog.jsx';
 
-/**
- * VictoryScreen — shown after the hero defeats all 5 monsters in the run.
- *
- * Displays a summary of the run:
- *   - Hero level reached
- *   - All moves learned during the run (not just the default 4)
- *   - Number of battles fought / won / lost
- *
- * Phase 2 ends here with a "Back to Menu" button. Future phases could
- * add a leaderboard, NG+, or localStorage-save of the run history.
- */
+/** End-of-run summary and full battle log. */
 export default function VictoryScreen({
   hero,
   moves,
@@ -21,6 +11,7 @@ export default function VictoryScreen({
   onBackToMenu,
 }) {
   const learned = hero.knownMoves.map((id) => moves[id]).filter(Boolean);
+  const logLines = Array.isArray(battleLog) ? battleLog : [];
 
   return (
     <div className="screen victory">
@@ -52,6 +43,14 @@ export default function VictoryScreen({
           </div>
         </div>
 
+        <div className="victory__log-prominent">
+          <p className="victory__log-hint">Review every fight from this run</p>
+          <BattleLog
+            entries={logLines}
+            triggerClassName="btn btn--icon-label battle-log__button battle-log__button--victory"
+          />
+        </div>
+
         <section className="victory__section">
           <h3>Monsters Defeated</h3>
           <ul className="victory__monsters">
@@ -76,11 +75,17 @@ export default function VictoryScreen({
           </ul>
         </section>
 
-        <div className="victory__actions">
-          {battleLog.length > 0 && <BattleLog entries={battleLog} />}
-          <button type="button" className="btn btn--primary" onClick={onBackToMenu}>
-            Back to Menu
-          </button>
+        <div className="victory__footer">
+          <div className="victory__actions">
+            <button
+              type="button"
+              className="btn btn--primary btn--icon-label"
+              onClick={onBackToMenu}
+            >
+              <i className="fa-solid fa-house btn__fa" aria-hidden />
+              Back to Menu
+            </button>
+          </div>
         </div>
       </div>
     </div>

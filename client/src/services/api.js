@@ -1,13 +1,6 @@
 import { API_BASE_URL, AUTH_STORAGE_KEY } from '../constants/gameConstants.js';
 
-/**
- * All fetch() calls to the server go through here so screens and hooks
- * never touch URLs or headers directly.
- *
- * Phase 3: reads the JWT from localStorage so every call is authed.
- * Non-authenticated endpoints (/auth/register, /auth/login) still work
- * because the server only rejects missing tokens on guarded routes.
- */
+/** HTTP client: attaches JWT from localStorage on authenticated routes. */
 
 function getToken() {
   try {
